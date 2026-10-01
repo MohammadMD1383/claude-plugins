@@ -1,0 +1,74 @@
+{
+  "name": "usage-guard",
+  "displayName": "Usage Guard",
+  "version": "1.0.0",
+  "description": "Makes Claude aware of your claude.ai 5-hour and weekly usage limits: conserves budget as they approach, checkpoints and writes an agent-agnostic HANDOFF.md before the cutoff, and auto-captures state if the limit hits mid-task. Zero context cost while usage is normal.",
+  "author": {
+    "name": "MohammadMD1383"
+  },
+  "repository": "https://github.com/MohammadMD1383/claude-usage-plugin",
+  "license": "MIT",
+  "keywords": [
+    "usage",
+    "rate-limit",
+    "handoff",
+    "checkpoint",
+    "statusline"
+  ],
+  "userConfig": {
+    "wrapup_pct": {
+      "type": "number",
+      "title": "Wrap-up threshold (%)",
+      "description": "Usage % of any limit window at which Claude stops starting new work and hands off. The burn-rate projection can trigger it earlier.",
+      "default": 88,
+      "min": 10,
+      "max": 100
+    },
+    "critical_pct": {
+      "type": "number",
+      "title": "Critical threshold (%)",
+      "description": "Usage % at which Claude must hand off immediately.",
+      "default": 95,
+      "min": 10,
+      "max": 100
+    },
+    "notice_pct": {
+      "type": "number",
+      "title": "Conserve threshold (%)",
+      "description": "Usage % at which Claude starts working leaner (no broad exploration or subagents).",
+      "default": 75,
+      "min": 1,
+      "max": 100
+    },
+    "handoff_file": {
+      "type": "string",
+      "title": "Hand-off file",
+      "description": "Repo-relative path of the hand-off note any agent (Claude, Codex, a human) can resume from.",
+      "default": "HANDOFF.md"
+    },
+    "wrapup_policy": {
+      "type": "string",
+      "title": "Wrap-up policy",
+      "description": "incremental: write the hand-off early, then keep working in small committed steps until critical (uses the remaining budget). stop: hand off and stop starting work at wrap-up.",
+      "default": "incremental"
+    },
+    "auto_commit": {
+      "type": "boolean",
+      "title": "Commit a WIP checkpoint on hand-off",
+      "description": "Ask Claude to commit its work-in-progress plus the hand-off note before the limit.",
+      "default": true
+    },
+    "block_subagents": {
+      "type": "boolean",
+      "title": "Block new subagents near the limit",
+      "description": "Deny spawning subagents once wrap-up is reached; they would likely be cut off.",
+      "default": true
+    },
+    "api_fallback": {
+      "type": "boolean",
+      "title": "Poll the usage endpoint as a fallback",
+      "description": "When the status line tap isn't installed, read limits from the same endpoint /usage uses (at most every 5 min, in the background).",
+      "default": true
+    }
+  }
+}
