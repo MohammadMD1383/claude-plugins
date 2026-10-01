@@ -120,6 +120,17 @@ The less obvious options:
 
 Set `USAGE_GUARD_DISABLE=1` to switch the plugin off for one shell.
 
+## Privacy, network and files
+
+Everything the plugin runs, reads, sends and writes:
+
+- **Runs:** `scripts/run.sh`, which starts `scripts/usage_guard.py` with your local Python 3. It also runs read-only `git` commands (`rev-parse`, `status`, `log`) in your project. It installs nothing and downloads no packages.
+- **Network:** one request type only: `GET https://api.anthropic.com/api/oauth/usage`, the endpoint Claude Code's own `/usage` command reads. It is sent only by the fallback poller, in the background, at most every 2.5–5 minutes, and never when the status line tap is feeding data. No other host is ever contacted. There is no telemetry or analytics. Set `api_fallback: false` to make the plugin fully offline.
+- **Credentials:** for that request only, the poller reads Claude Code's existing OAuth access token from Claude Code's own store: `~/.claude/.credentials.json`, the macOS Keychain item `Claude Code-credentials`, or `CLAUDE_CODE_OAUTH_TOKEN`. The token is sent only to `api.anthropic.com`. It is never logged, stored, refreshed or sent anywhere else.
+- **Reads:** hook input from Claude Code, the tail of the session transcript and the session's task list. These are read only when the limit is hit, to write the emergency snapshot.
+- **Writes, in your project:** only the hand-off file (`HANDOFF.md` by default), and only when the limit is hit or Claude follows the hand-off protocol. Commits happen only when Claude runs the protocol with `auto_commit` on. The plugin never pushes.
+- **Writes, elsewhere:** usage readings and per-session notice state go in the plugin's data directory (`~/.claude/plugins/data/usage-guard-*`). `/usage-guard:setup` edits the `statusLine` entry of `~/.claude/settings.json`, after saving a backup to `settings.json.usage-guard.bak`, and `/usage-guard:setup uninstall` restores it.
+
 ## Limitations
 
 - The fallback endpoint isn't a documented API and may change. The status line feed is official.
@@ -130,11 +141,11 @@ Set `USAGE_GUARD_DISABLE=1` to switch the plugin off for one shell.
 
 ```bash
 python3 -m unittest discover -s tests -v   # 24 tests: parsing, levels, burn rate, hooks, snapshot, setup, fetch
-claude plugin validate . && claude plugin validate plugins/usage-guard
-claude --plugin-dir plugins/usage-guard     # try it locally
+claude plugin validate . --strict
+claude --plugin-dir .                       # try it locally
 ```
 
-Layout: `plugins/usage-guard/` holds the plugin. `scripts/usage_guard.py` is the single stdlib-only engine behind the hooks, the status line, the fetcher and the commands; `hooks/hooks.json` wires six events to it; `skills/` contains the three user-invoked commands.
+Layout: the repository root is both the plugin and its one-plugin marketplace (`.claude-plugin/`). `scripts/usage_guard.py` is the single stdlib-only engine behind the hooks, the status line, the fetcher and the commands; `hooks/hooks.json` wires six events to it; `skills/` contains the three user-invoked commands.
 
 ## License
 

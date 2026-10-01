@@ -1,11 +1,15 @@
 {
   "name": "claude-usage-plugin",
-  "owner": { "name": "MohammadMD1383" },
-  "metadata": { "description": "Usage-limit awareness for Claude Code" },
+  "owner": {
+    "name": "MohammadMD1383"
+  },
+  "metadata": {
+    "description": "Usage-limit awareness for Claude Code"
+  },
   "plugins": [
     {
       "name": "usage-guard",
-      "source": "./plugins/usage-guard",
+      "source": "./",
       "description": "Usage-limit awareness: conserve, checkpoint and hand off before claude.ai limits cut Claude off.",
       "category": "productivity"
     }

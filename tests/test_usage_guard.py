@@ -13,7 +13,7 @@ import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRIPT = os.path.join(ROOT, "plugins", "usage-guard", "scripts", "usage_guard.py")
+SCRIPT = os.path.join(ROOT, "scripts", "usage_guard.py")
 
 spec = importlib.util.spec_from_file_location("usage_guard", SCRIPT)
 ug = importlib.util.module_from_spec(spec)
