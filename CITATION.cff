@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you reference these plugins, please cite them as below."
+title: "claude-plugins: Claude Code plugins for usage limits and context (usage-guard, usage-bar)"
+type: software
+authors:
+  - alias: MohammadMD1383
+    website: "https://github.com/MohammadMD1383"
+repository-code: "https://github.com/MohammadMD1383/claude-plugins"
+url: "https://mohammadmd1383.github.io/claude-plugins/"
+license: MIT
+keywords:
+  - Claude Code
+  - Claude Code plugins
+  - usage limits
+  - rate limits
+  - status line
+abstract: >-
+  Open-source plugins for Claude Code. usage-guard makes Claude aware of claude.ai
+  5-hour and weekly usage limits so it conserves budget, checkpoints and writes a
+  hand-off before it is cut off. usage-bar shows context-window and limit usage
+  above the prompt.

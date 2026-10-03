@@ -1,0 +1,126 @@
+<!--meta
+{
+  "title": "Claude Code Plugins for Usage Limits and Context",
+  "og_title": "Claude Code plugins: usage-guard and usage-bar",
+  "description": "Free, open-source Claude Code plugins: usage-guard hands off before usage limits cut Claude off, and usage-bar shows context and limits above the prompt.",
+  "path": "/",
+  "type": "home",
+  "published": "2026-10-03",
+  "og": "default",
+  "sources": [".claude-plugin/marketplace.json", "plugins/usage-guard/.claude-plugin/plugin.json", "plugins/usage-bar/.claude-plugin/plugin.json"]
+}
+-->
+<section class="wrap hero">
+  <div>
+    <p class="eyebrow">Open source · MIT · {{plugin_count}} plugins</p>
+    <h1>Claude Code plugins that keep your usage limits in view</h1>
+    <p class="lede">Claude Code can't see your claude.ai 5-hour and weekly limits. These plugins fix that: <strong>usage-guard</strong> makes Claude conserve, checkpoint and write a hand-off before it gets cut off, and <strong>usage-bar</strong> shows context and limit usage right above the prompt.</p>
+    <div class="cta">
+      <a class="btn primary" href="#install">Install in 2 commands</a>
+      <a class="btn" href="{{repo}}" rel="noopener">View on GitHub</a>
+    </div>
+  </div>
+  <figure class="term" aria-label="Illustration of a Claude Code session with usage-bar and usage-guard installed">
+    <div class="term-top" aria-hidden="true"><i></i><i></i><i></i><span>claude — ~/project</span></div>
+    <div class="term-body">
+<pre><span class="b">●</span> T3 done. Committed <span class="c">a41c2e9</span> feat: retry failed uploads
+<span class="b">●</span> The 5-hour window is at <span class="y">89%</span> (about 18 min left
+  at this pace). I wrote <span class="c">HANDOFF.md</span> and committed it, and
+  I'll continue in small committed steps.
+
+  <span class="d">ctx</span> <span class="g">━━━</span><span class="d">───</span> 84k/200k <span class="d">·</span> <span class="d">5h</span> <span class="y">━━━━━</span><span class="d">─</span> <span class="y">89%</span> <span class="d">↻ 1h12m</span> <span class="d">·</span> <span class="d">week</span> <span class="g">━━</span><span class="d">────</span> 41% <span class="d">↻ 3d4h</span></pre>
+<div class="prompt" aria-hidden="true"><span class="d">&gt;</span></div>
+    </div>
+  </figure>
+</section>
+
+<section class="band section" id="plugins" aria-labelledby="plugins-title">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="plugins-title">Plugins</h2>
+      <p>Each plugin is self-contained, installs from the same marketplace, and can be used alone or together.</p>
+    </div>
+    <div class="cards">
+      <article class="card">
+        <h3><a href="{{base}}/plugins/usage-guard/">usage-guard</a> <span class="ver">v{{v:usage-guard}}</span></h3>
+        <p>Usage-limit awareness for Claude. It stays silent at normal usage, then makes Claude work lean, write <code>HANDOFF.md</code> and commit before the limit hits.</p>
+        <ul>
+          <li>Zero tokens while usage is normal</li>
+          <li>Burn-rate projection, not just a percentage</li>
+          <li>Emergency snapshot if the limit hits mid-task</li>
+        </ul>
+<pre data-lang="text"><code>/plugin install usage-guard@{{market}}</code></pre>
+      </article>
+      <article class="card">
+        <h3><a href="{{base}}/plugins/usage-bar/">usage-bar</a> <span class="ver">v{{v:usage-bar}}</span></h3>
+        <p>A one-line bar above the prompt: context window used/total and the 5-hour and weekly limits with reset countdowns. Every section is optional.</p>
+        <ul>
+          <li>Context updates after every model request</li>
+          <li>Yellow at 70%, red at 90% (configurable)</li>
+          <li>No scripts, no network calls, no context cost</li>
+        </ul>
+<pre data-lang="text"><code>/plugin install usage-bar@{{market}}</code></pre>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="wrap section" id="install" aria-labelledby="install-title">
+  <div class="section-head">
+    <h2 id="install-title">Install</h2>
+    <p>Add the marketplace once, then install whichever plugins you want. Run these inside Claude Code.</p>
+  </div>
+  <ol class="steps">
+    <li><strong>Add the marketplace</strong>
+<pre data-lang="text"><code>/plugin marketplace add MohammadMD1383/claude-plugins</code></pre></li>
+    <li><strong>Install a plugin</strong>
+<pre data-lang="text"><code>/plugin install usage-guard@{{market}}
+/plugin install usage-bar@{{market}}</code></pre></li>
+    <li><strong>Optional: give usage-guard live limit data</strong>
+<pre data-lang="text"><code>/usage-guard:setup</code></pre>
+      <p>This taps Claude Code's status line feed, which carries exact limit data on every response. Your existing status line is kept.</p></li>
+  </ol>
+  <p>Prefer the shell, or setting up a team? See the <a href="{{base}}/guides/install-claude-code-plugins/">full guide to installing Claude Code plugins</a>.</p>
+</section>
+
+<section class="band section" aria-labelledby="why-title">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="why-title">Why these exist</h2>
+      <p>On Pro and Max plans, Claude Code runs against a 5-hour window and a weekly window. The model has no idea where you are in either, so it will happily start a 50-step refactor at 92% and stop mid-edit.</p>
+    </div>
+    <ul class="features">
+      <li><strong>No half-applied work</strong><span>usage-guard has Claude commit in small steps and keep a hand-off note current as the limit approaches.</span></li>
+      <li><strong>Resume anywhere</strong><span><code>HANDOFF.md</code> is written for a reader with no context: Codex, a human, or the next Claude session.</span></li>
+      <li><strong>See it before it bites</strong><span>usage-bar puts context size, 5-hour and weekly usage, and reset countdowns in one line.</span></li>
+      <li><strong>Cheap by design</strong><span>No MCP servers, no always-on prompts. usage-guard adds 0 tokens at normal usage; usage-bar adds none at all.</span></li>
+      <li><strong>Local and private</strong><span>No telemetry. usage-bar makes no network calls; usage-guard only reads the same endpoint <code>/usage</code> does, and only as a fallback.</span></li>
+      <li><strong>Tested</strong><span>Both plugins ship with test suites that run in CI on every push.</span></li>
+    </ul>
+    <p>New to the limits themselves? Read <a href="{{base}}/guides/claude-code-usage-limits/">how Claude Code's 5-hour and weekly usage limits work</a>.</p>
+  </div>
+</section>
+
+<section class="prose section" id="faq" aria-labelledby="faq-title">
+  <h2 id="faq-title">FAQ</h2>
+  <div class="qa">
+    <h3>Are these plugins free?</h3>
+    <p>Yes. Both plugins are free and open source under the MIT license. You need Claude Code and, for the usage-limit features, a Claude Pro or Max plan.</p>
+  </div>
+  <div class="qa">
+    <h3>Are these official Anthropic plugins?</h3>
+    <p>No. They are independent community plugins by MohammadMD1383 and are not affiliated with or endorsed by Anthropic. The source code is public on GitHub.</p>
+  </div>
+  <div class="qa">
+    <h3>What is the difference between usage-guard and usage-bar?</h3>
+    <p>usage-guard changes what Claude does: it warns Claude as limits approach so it conserves budget, checkpoints and writes a hand-off. usage-bar changes what you see: a status bar with context size and limit usage. They work well together.</p>
+  </div>
+  <div class="qa">
+    <h3>Do the plugins use up my tokens or context?</h3>
+    <p>usage-bar adds nothing to Claude's context. usage-guard adds zero tokens while usage is normal and only sends short messages once a threshold is crossed; the full wrap-up message is about 225 tokens.</p>
+  </div>
+  <div class="qa">
+    <h3>Do they work with an API key, Bedrock or Vertex?</h3>
+    <p>Plan usage limits only exist on claude.ai Pro and Max subscriptions. With an API key, Bedrock or Vertex, usage-bar shows only the context section and usage-guard has no limit data to act on.</p>
+  </div>
+</section>

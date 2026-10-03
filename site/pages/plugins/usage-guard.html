@@ -1,0 +1,166 @@
+<!--meta
+{
+  "title": "usage-guard: Claude Code Usage Limit Plugin and Hand-off",
+  "h1": "usage-guard: make Claude Code aware of your usage limits",
+  "description": "usage-guard makes Claude Code aware of claude.ai 5-hour and weekly limits, so Claude conserves budget, commits and writes HANDOFF.md before it is cut off.",
+  "path": "/plugins/usage-guard/",
+  "type": "plugin",
+  "plugin": "usage-guard",
+  "language": "Python",
+  "requirements": "Claude Code; Python 3 on PATH",
+  "published": "2026-10-03",
+  "og": "usage-guard",
+  "breadcrumb": [["Plugins", "/#plugins"], ["usage-guard", null]],
+  "sources": ["plugins/usage-guard/README.md", "plugins/usage-guard/.claude-plugin/plugin.json"]
+}
+-->
+<article class="prose article">
+  <h1>usage-guard: make Claude Code aware of your usage limits</h1>
+  <!--stamp-->
+  <p class="lede">Claude Code can't see your plan's 5-hour and weekly limits. It will start a big milestone at 92% and die mid-edit, leaving half-applied refactors, nothing committed and no notes. usage-guard gives Claude that awareness, and stays silent until it matters.</p>
+
+  <ul class="facts" aria-label="Plugin facts">
+    <li><b>Version</b> <span>{{v:usage-guard}}</span></li>
+    <li><b>License</b> <span>MIT, free</span></li>
+    <li><b>Needs</b> <span>Python 3</span></li>
+    <li><b>Context cost</b> <span>0 tokens at normal usage</span></li>
+  </ul>
+
+<pre data-lang="text"><code>/plugin marketplace add MohammadMD1383/claude-plugins
+/plugin install usage-guard@{{market}}
+/usage-guard:setup</code></pre>
+
+  <nav class="toc" aria-label="On this page">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#tested">Tested end to end</a></li>
+      <li><a href="#data">Where the numbers come from</a></li>
+      <li><a href="#cost">Why it stays cheap</a></li>
+      <li><a href="#commands">Commands</a></li>
+      <li><a href="#handoff">The hand-off file</a></li>
+      <li><a href="#config">Configuration</a></li>
+      <li><a href="#privacy">Privacy, network and files</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="how-it-works">How it works</h2>
+  <p>usage-guard escalates in steps. Each level is triggered by a usage percentage <em>or</em> by the projected minutes left at your current pace, whichever comes first.</p>
+  <div class="table">
+    <table>
+      <thead><tr><th>Usage</th><th>What Claude is told</th><th>What else happens</th></tr></thead>
+      <tbody>
+        <tr><td>Normal</td><td>Nothing. Zero tokens.</td><td></td></tr>
+        <tr><td><span class="pill ok">Conserve</span> ≥75%, or ~45 min left</td><td>Work lean: targeted reads, no broad exploration or subagents, commit after each finished task.</td><td>Status line turns yellow.</td></tr>
+        <tr><td><span class="pill warn">Wrap-up</span> ≥88%, or ~20 min left</td><td>Write <code>HANDOFF.md</code> and commit it now. Then continue only in small committed steps, keeping the hand-off current.</td><td>New subagents are blocked. If Claude tries to end a turn with uncommitted work and no hand-off, it is sent back once to finish them.</td></tr>
+        <tr><td><span class="pill crit">Critical</span> ≥95%, or ~8 min left</td><td>Start nothing new. Make sure the hand-off is current and committed, tell the user, and stop.</td><td></td></tr>
+        <tr><td>Limit hit</td><td>Claude can't act any more.</td><td>The plugin writes an emergency snapshot to <code>HANDOFF.md</code> without the model: branch, uncommitted files, your last request, open tasks. You also get a desktop notification.</td></tr>
+        <tr><td>After reset</td><td>One line: a recent <code>HANDOFF.md</code> exists, so read it before continuing previous work.</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Every message tells Claude which window it is (5-hour or weekly), the usage percentage, the projected minutes left and the reset time. That lets Claude make sensible calls: if the window resets in 10 minutes, it suggests pausing instead of handing off. For a model-specific weekly limit, it suggests switching models.</p>
+
+  <h2 id="tested">Tested end to end with Claude Code</h2>
+  <p>The test gave Claude an 8-task milestone with usage at 89%, then raised it to 96% after about 20 seconds. Claude:</p>
+  <ol>
+    <li>Told the user about the limit, wrote the plan to <code>HANDOFF.md</code> and committed it.</li>
+    <li>Implemented T1, T2 and T3, with one commit each and the backlog boxes ticked.</li>
+    <li>When the critical warning arrived, used one tool call to rewrite <code>HANDOFF.md</code> with exact next steps and gotchas, then committed <code>wip: checkpoint before usage limit</code>.</li>
+    <li>Stopped and reported: <em>"T1–T3 done; T4–T8 not started; hand-off in HANDOFF.md."</em></li>
+  </ol>
+  <p>Any agent can pick up from there.</p>
+
+  <h2 id="data">Where the numbers come from</h2>
+  <ol>
+    <li><strong>The status line feed (preferred).</strong> Claude Code gives status line commands <code>rate_limits.five_hour</code> and <code>rate_limits.seven_day</code> (<code>used_percentage</code>, <code>resets_at</code>) after every API response, on Pro and Max plans. Hooks don't receive this data, so <code>/usage-guard:setup</code> records it to a small shared cache that the hooks read. This costs no tokens and no network calls.</li>
+    <li><strong>The usage endpoint (fallback).</strong> Without the tap, a detached background process reads the same endpoint <code>/usage</code> uses, with your existing Claude Code login. It polls at most every 5 minutes (2.5 minutes once usage is elevated), backs off on HTTP 429, never refreshes your token, and is skipped for Bedrock, Vertex, Foundry and custom base URLs.</li>
+  </ol>
+  <p>The cache is account-wide, so several Claude sessions running in parallel all see the shared burn.</p>
+  <p><strong>Burn-rate projection.</strong> A raw percentage misleads: 85% with three hours left can be fine, while 70% burning 2% a minute is about to run out. usage-guard keeps a short history of readings and projects the minutes until the limit. That projection can escalate earlier than the percentage thresholds, and it can hold back a hand-off when the window will reset before you would run out.</p>
+
+  <h2 id="cost">Why it stays cheap</h2>
+  <ul>
+    <li><strong>No always-on context.</strong> No MCP server, no CLAUDE.md, and every skill is <code>disable-model-invocation</code>, so not even a skill description sits in context. At normal usage the plugin adds 0 tokens.</li>
+    <li><strong>Escalation-only messages.</strong> Each level is announced once (the full wrap-up message with the hand-off protocol is about 225 tokens), with a one-line reminder every 15 tool calls at wrap-up or above.</li>
+    <li><strong>Fast hooks.</strong> About 40 ms each, stdlib Python, no network in the foreground. Every failure path exits silently, so the plugin can never block or break a session.</li>
+    <li><strong>The emergency snapshot is written by a script, not the model,</strong> because by then there's no budget left to spend.</li>
+  </ul>
+
+  <h2 id="commands">Commands</h2>
+  <div class="table">
+    <table>
+      <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>/usage-guard:status</code></td><td>Per-window usage, burn rate, minutes to the limit, reset time, data source and age.</td></tr>
+        <tr><td><code>/usage-guard:handoff [notes]</code></td><td>Run the hand-off protocol now, for example before deliberately switching to Codex.</td></tr>
+        <tr><td><code>/usage-guard:setup [uninstall]</code></td><td>Install or remove the status line tap. An existing status line is kept and wrapped, with a segment such as <code>5h 91% ~14m left · 7d 40%</code> appended.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="handoff">The hand-off file</h2>
+  <p><code>HANDOFF.md</code> sits at the repo root and is written for a reader with no context: Codex, a human, or a future Claude session. It has these sections:</p>
+  <ul>
+    <li><strong>Goal:</strong> the overall task or milestone, and where its spec or backlog lives.</li>
+    <li><strong>Done:</strong> completed items, with commit hashes.</li>
+    <li><strong>In progress:</strong> exact files and functions touched, and what's left.</li>
+    <li><strong>Next steps:</strong> concrete and in order.</li>
+    <li><strong>Decisions and gotchas:</strong> choices made and why, traps found, things not to retry.</li>
+    <li><strong>Verify:</strong> the commands that prove the work.</li>
+  </ul>
+  <p>To continue elsewhere, tell the other agent: <em>"Continue the work described in HANDOFF.md."</em> If the limit hits before Claude finishes the protocol, an auto-captured block between <code>&lt;!-- usage-guard:auto:start/end --&gt;</code> markers still records what changed and what was open.</p>
+
+  <h2 id="config">Configuration</h2>
+  <p>The main options are prompted when you enable the plugin and can be changed under <code>/config</code>. All options can also go in <code>~/.claude/usage-guard.json</code>, or per project in <code>.claude/usage-guard.json</code>:</p>
+<pre data-lang="json"><code>{
+  "notice_pct": 75, "wrapup_pct": 88, "critical_pct": 95,
+  "notice_eta_min": 45, "wrapup_eta_min": 20, "critical_eta_min": 8,
+  "wrapup_policy": "incremental",
+  "handoff_file": "HANDOFF.md",
+  "auto_commit": true,
+  "block_subagents": true,
+  "api_fallback": true,
+  "statusline_segment": "always"
+}</code></pre>
+  <ul>
+    <li><strong><code>wrapup_policy</code></strong>: <code>incremental</code> (default) hands off early and keeps working in small committed steps, so the remaining budget gets used. <code>stop</code> stops starting work at wrap-up.</li>
+    <li><strong><code>auto_commit</code></strong>: set to <code>false</code> if Claude must never commit. The hand-off note is still written.</li>
+    <li><strong><code>api_fallback</code></strong>: set to <code>false</code> to make the plugin fully offline.</li>
+  </ul>
+  <p>Set <code>USAGE_GUARD_DISABLE=1</code> to switch the plugin off for one shell. The <a href="{{repo}}/tree/main/plugins/usage-guard#configuration" rel="noopener">README lists every option</a>.</p>
+
+  <h2 id="privacy">Privacy, network and files</h2>
+  <ul>
+    <li><strong>Runs:</strong> a single stdlib Python script with your local Python 3, plus read-only <code>git</code> commands. It installs and downloads nothing.</li>
+    <li><strong>Network:</strong> one request type only, <code>GET https://api.anthropic.com/api/oauth/usage</code>, the endpoint Claude Code's own <code>/usage</code> reads. Sent only by the fallback poller and never when the status line tap is feeding data. No telemetry or analytics.</li>
+    <li><strong>Credentials:</strong> for that request only, the poller reads Claude Code's existing OAuth token from Claude Code's own store. It is never logged, stored, refreshed or sent anywhere else.</li>
+    <li><strong>Writes:</strong> only the hand-off file in your project, plus readings in the plugin's data directory. <code>/usage-guard:setup</code> backs up <code>~/.claude/settings.json</code> before editing its <code>statusLine</code>. The plugin never pushes.</li>
+  </ul>
+
+  <h2 id="faq">FAQ</h2>
+  <div class="qa">
+    <h3>How do I stop Claude Code from getting cut off mid-task by the usage limit?</h3>
+    <p>Install usage-guard. It tells Claude where it is in the 5-hour and weekly windows, so as the limit approaches Claude works lean, commits in small steps and writes a HANDOFF.md before it is cut off. If the limit still hits, a script writes an emergency snapshot.</p>
+  </div>
+  <div class="qa">
+    <h3>Can I hand off from Claude Code to Codex or another agent?</h3>
+    <p>Yes. HANDOFF.md is written for a reader with no context. Run /usage-guard:handoff, then tell the other agent to continue the work described in HANDOFF.md.</p>
+  </div>
+  <div class="qa">
+    <h3>Does usage-guard work on Windows?</h3>
+    <p>Yes, as long as Python 3 is on your PATH. macOS and Linux have it out of the box; on Windows, install it from python.org.</p>
+  </div>
+  <div class="qa">
+    <h3>What happens if I have extra usage credits enabled?</h3>
+    <p>If extra usage is enabled, hitting the limit bills credits rather than stopping you. Claude is told so, and the thresholds stay the same.</p>
+  </div>
+
+  <h2 id="related">Related</h2>
+  <ul class="related">
+    <li><a href="{{base}}/plugins/usage-bar/">usage-bar<span>See context and limit usage in a bar above the prompt.</span></a></li>
+    <li><a href="{{base}}/guides/claude-code-usage-limits/">Claude Code usage limits explained<span>How the 5-hour and weekly windows work.</span></a></li>
+    <li><a href="{{repo}}/tree/main/plugins/usage-guard" rel="noopener">Source code<span>Python engine, hooks, skills and 24 tests.</span></a></li>
+  </ul>
+</article>

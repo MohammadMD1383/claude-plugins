@@ -1,0 +1,159 @@
+<!--meta
+{
+  "title": "Claude Code Usage Limits: 5-Hour and Weekly Windows",
+  "h1": "Claude Code usage limits: how the 5-hour and weekly windows work",
+  "description": "How Claude Code usage limits work on Pro and Max: the rolling 5-hour window, weekly and Opus/Sonnet limits, how to check usage, and how to avoid hitting them.",
+  "path": "/guides/claude-code-usage-limits/",
+  "type": "article",
+  "published": "2026-10-03",
+  "og": "usage-limits",
+  "about": ["Claude Code", "usage limits", "rate limits", "Claude Pro", "Claude Max"],
+  "breadcrumb": [["Claude Code usage limits", null]]
+}
+-->
+<article class="prose article">
+  <h1>Claude Code usage limits: how the 5-hour and weekly windows work</h1>
+  <!--stamp-->
+  <p class="lede">If you use Claude Code with a Claude subscription, every request draws from two allowances: a rolling 5-hour window and a weekly window. This guide explains what each one is, how to check where you are, what happens when you run out, and how to keep a long agentic task from being cut off halfway.</p>
+
+  <section class="tldr" aria-labelledby="tldr">
+    <h2 id="tldr">Summary</h2>
+    <ul>
+      <li>Pro, Max, Team and Enterprise plans meter Claude Code usage in a <strong>rolling 5-hour window</strong> and a <strong>weekly (7-day) window</strong>. The allowance is shared with Claude chat.</li>
+      <li>Some plans also have <strong>model-specific limits</strong> ("You've hit your Opus limit"). Switching to another model family with <code>/model</code> keeps you working; for the session and weekly limits it doesn't.</li>
+      <li>Check usage with <code>/usage</code>, or show it permanently: the status line receives <code>rate_limits.five_hour</code> and <code>rate_limits.seven_day</code> after every response.</li>
+      <li>When a limit is hit, Claude Code blocks requests until the reset time, unless usage credits are turned on.</li>
+      <li>The model itself can't see your limits. Give it that awareness (for example with <a href="{{base}}/plugins/usage-guard/">usage-guard</a>) so it commits and hands off before it is cut off.</li>
+    </ul>
+  </section>
+
+  <nav class="toc" aria-label="On this page">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#windows">The two usage windows</a></li>
+      <li><a href="#model-limits">Model-specific limits</a></li>
+      <li><a href="#check">How to check your usage</a></li>
+      <li><a href="#statusline">Show limits in your status line</a></li>
+      <li><a href="#hit">What happens when you hit a limit</a></li>
+      <li><a href="#why">Why limits hurt agentic work</a></li>
+      <li><a href="#avoid">How to avoid getting cut off</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="windows">The two usage windows</h2>
+  <p>Claude subscriptions include a usage allowance rather than per-token billing. For Claude Code that allowance is measured in two windows at once, and you can be stopped by either:</p>
+  <div class="table">
+    <table>
+      <thead><tr><th>Window</th><th>How it works</th><th>Error when exhausted</th></tr></thead>
+      <tbody>
+        <tr><td><strong>5-hour</strong> (session)</td><td>A rolling window. It starts with your first message after the previous window ended and resets 5 hours later. If you are idle when it resets, the next window only starts with your next message.</td><td><code>You've hit your session limit · resets 3:45pm</code></td></tr>
+        <tr><td><strong>Weekly</strong> (7-day)</td><td>A longer window that caps total use across the week. It keeps counting across many 5-hour windows.</td><td><code>You've hit your weekly limit · resets Mon 12:00am</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Usage is counted per account, not per session. Several Claude Code sessions in parallel, other devices and Claude chat all draw from the same windows, so a session can find the limit closer than its own work would suggest.</p>
+  <p class="note">The size of each allowance depends on your plan (Pro, Max, or a Team or Enterprise seat tier) and isn't a fixed number of messages: long contexts and heavy models use it up faster. Check Anthropic's help center for your plan's current terms.</p>
+
+  <h2 id="model-limits">Model-specific limits</h2>
+  <p>Besides the shared session and weekly limits, some plans have limits that apply to one model family only:</p>
+<pre data-lang="text"><code>You've hit your Opus limit · resets 3:45pm
+You've hit your Sonnet limit · resets 3:45pm</code></pre>
+  <p>These only block requests to that family, so switching to a model outside it with <code>/model</code> keeps you working. The session and weekly limits are shared across all models, so switching models does not restore access after those.</p>
+
+  <h2 id="check">How to check your usage</h2>
+  <ul>
+    <li><strong><code>/usage</code></strong> in Claude Code shows plan usage bars, and on Pro, Max, Team and Enterprise plans a breakdown of what counts against your limits: usage attributed to skills, subagents, plugins and MCP servers, and flags for behaviors such as long context or cache misses. Press <kbd>d</kbd> or <kbd>w</kbd> to switch between the last 24 hours and 7 days. The breakdown is computed from local history, so it doesn't include other devices.</li>
+    <li><strong>claude.ai → Settings → Usage</strong> shows the same plan limits in the browser.</li>
+    <li><strong>A status line or a bar</strong> keeps the numbers on screen all the time, which is the only way to notice a fast burn before it becomes a problem. See the next section.</li>
+  </ul>
+
+  <h2 id="statusline">Show limits in your status line</h2>
+  <p>Claude Code sends your status line command a JSON object after every response. For Pro and Max subscribers it includes the two windows, each with <code>used_percentage</code> (0–100) and <code>resets_at</code> (Unix epoch seconds). The fields appear only after the first API response in a session and may be absent, so handle that:</p>
+<pre data-lang="bash"><code>#!/bin/sh
+# ~/.claude/statusline.sh: prints e.g. "5h 31% · 7d 41%"
+input=$(cat)
+five=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
+week=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
+out=""
+[ -n "$five" ] &amp;&amp; out="5h $(printf '%.0f' "$five")%"
+[ -n "$week" ] &amp;&amp; out="${out:+$out · }7d $(printf '%.0f' "$week")%"
+echo "${out:-limits: waiting for first response}"</code></pre>
+  <p>Make it executable and point <code>~/.claude/settings.json</code> at it:</p>
+<pre data-lang="json"><code>{
+  "statusLine": { "type": "command", "command": "~/.claude/statusline.sh" }
+}</code></pre>
+  <p>If you'd rather not maintain a script, <a href="{{base}}/plugins/usage-bar/">usage-bar</a> draws the same data as a bar above the prompt, with the context window, colored meters and reset countdowns, and leaves your status line alone. The <a href="https://code.claude.com/docs/en/statusline" rel="noopener">official status line documentation</a> lists every field.</p>
+
+  <h2 id="hit">What happens when you hit a limit</h2>
+  <ol>
+    <li>Claude Code blocks further requests and shows which limit you hit and when it resets.</li>
+    <li>If <strong>usage credits</strong> are turned on for your plan, you can keep working past the limit and the extra use is billed as credits. Run <code>/usage-credits</code> to manage them.</li>
+    <li>In an interactive session signed in with a subscription, recent versions of Claude Code can wait in the open session and continue the interrupted task shortly after the reset.</li>
+    <li>For a model-specific limit, switch models with <code>/model</code>.</li>
+  </ol>
+  <p>None of these help with the work that was in flight when the limit hit. That is the real cost.</p>
+
+  <h2 id="why">Why usage limits hurt agentic coding</h2>
+  <p>Claude Code is agentic: one prompt can turn into dozens of tool calls, edits and test runs. But the model doesn't receive your usage figures, so it plans as if the budget were unlimited. A typical failure looks like this:</p>
+  <ul>
+    <li>At 92% of the 5-hour window, you ask for an 8-step refactor.</li>
+    <li>Claude edits six files, three of them only partly, and runs out mid-edit.</li>
+    <li>Nothing is committed, there are no notes, and the code doesn't build. You wait hours for the reset, or hand a confusing workspace to another agent.</li>
+  </ul>
+  <p>A raw percentage is also misleading. 85% with three hours left in the window can be fine, while 70% burning 2% a minute runs out in fifteen minutes. What matters is the <em>projected time left at the current pace</em>.</p>
+
+  <h2 id="avoid">How to avoid getting cut off</h2>
+  <h3 id="avoid-aware">1. Make Claude aware of the limits</h3>
+  <p><a href="{{base}}/plugins/usage-guard/">usage-guard</a> feeds the limit data to Claude through hooks. It adds no tokens at normal usage, then escalates: work lean at 75%, write and commit <code>HANDOFF.md</code> at 88%, stop starting new work at 95%. Each step can trigger earlier based on burn rate. If the limit hits anyway, a script writes an emergency snapshot of the branch, uncommitted files and open tasks.</p>
+  <h3 id="avoid-commit">2. Commit in small steps</h3>
+  <p>Ask Claude to commit after every finished task. A limit that hits between commits then costs minutes, not the whole change.</p>
+  <h3 id="avoid-handoff">3. Keep a hand-off note</h3>
+  <p>A short file with the goal, what's done, what's in progress, next steps and how to verify lets any agent, a teammate or the next session continue immediately. Run <code>/usage-guard:handoff</code> to write one on demand.</p>
+  <h3 id="avoid-context">4. Keep the context small</h3>
+  <p>Each request carries the conversation's context, so long contexts use the allowance faster. Use <code>/clear</code> when you switch to unrelated work, and <code>/compact</code> with instructions on what to keep when you want continuity. Note that compacting a large context is itself a large request; <code>/clear</code> costs nothing.</p>
+  <h3 id="avoid-model">5. Match the model to the task</h3>
+  <p>Use a lighter model for routine edits and reserve the heaviest model for hard reasoning. This also helps when you are near a model-specific limit.</p>
+  <h3 id="avoid-timing">6. Time big tasks around resets</h3>
+  <p>If the 5-hour window resets in 20 minutes, it is often better to plan now and start the big change after the reset than to start it at 90%.</p>
+
+  <h2 id="faq">FAQ</h2>
+  <div class="qa">
+    <h3>How long is the Claude Code usage limit?</h3>
+    <p>There are two windows. The session limit uses a rolling 5-hour window, and the weekly limit uses a 7-day window. The error message tells you exactly when the window you hit resets.</p>
+  </div>
+  <div class="qa">
+    <h3>Does Claude Code share usage limits with Claude chat?</h3>
+    <p>Yes. On subscription plans the allowance is per account and shared with Claude chat, so usage in claude.ai, on other devices and in other Claude Code sessions counts toward the same windows.</p>
+  </div>
+  <div class="qa">
+    <h3>How do I see how much of my Claude Code limit I have left?</h3>
+    <p>Run /usage in Claude Code, check Settings → Usage on claude.ai, or show the rate_limits fields in your status line. The usage-bar plugin shows both windows with reset countdowns above the prompt.</p>
+  </div>
+  <div class="qa">
+    <h3>Does switching models help when I hit the limit?</h3>
+    <p>Only for model-specific limits such as the Opus or Sonnet limit. The session and weekly limits are shared across all models, so switching models does not restore access.</p>
+  </div>
+  <div class="qa">
+    <h3>Do usage limits apply when I use an API key?</h3>
+    <p>No. Plan usage limits apply to subscriptions. With an Anthropic API key, Amazon Bedrock or Google Vertex AI you pay per token and are subject to that provider's rate and spend limits instead.</p>
+  </div>
+  <div class="qa">
+    <h3>Can Claude Code continue automatically after the limit resets?</h3>
+    <p>Recent versions can wait in an open interactive session and continue the interrupted task shortly after the reset. A hand-off file still helps if you want to continue somewhere else or with another agent.</p>
+  </div>
+
+  <h2 id="sources">Sources</h2>
+  <ul>
+    <li><a href="https://code.claude.com/docs/en/costs" rel="noopener">Claude Code docs: Manage costs and usage</a></li>
+    <li><a href="https://code.claude.com/docs/en/errors" rel="noopener">Claude Code docs: Error reference (usage limits)</a></li>
+    <li><a href="https://code.claude.com/docs/en/statusline" rel="noopener">Claude Code docs: Status line</a></li>
+  </ul>
+
+  <h2 id="related">Related</h2>
+  <ul class="related">
+    <li><a href="{{base}}/plugins/usage-guard/">usage-guard<span>Make Claude conserve, checkpoint and hand off before the limit.</span></a></li>
+    <li><a href="{{base}}/plugins/usage-bar/">usage-bar<span>See context and both limit windows above the prompt.</span></a></li>
+    <li><a href="{{base}}/guides/install-claude-code-plugins/">Install Claude Code plugins<span>Marketplaces, scopes, updates and removal.</span></a></li>
+  </ul>
+</article>
