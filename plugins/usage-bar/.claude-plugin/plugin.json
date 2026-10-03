@@ -1,14 +1,20 @@
 {
   "name": "usage-bar",
   "displayName": "Usage Bar",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A one-line bar above the prompt: context window used/total, 5-hour and weekly limit usage with reset countdowns. Every section is optional.",
   "author": {
     "name": "MohammadMD1383"
   },
   "repository": "https://github.com/MohammadMD1383/claude-plugins/tree/main/plugins/usage-bar",
   "license": "MIT",
-  "keywords": ["usage", "context", "rate-limit", "statusline", "mod"],
+  "keywords": [
+    "usage",
+    "context",
+    "rate-limit",
+    "statusline",
+    "mod"
+  ],
   "types": "./types/index.d.ts",
   "userConfig": {
     "show_context": {
@@ -46,7 +52,10 @@
       "title": "Placement",
       "description": "above-prompt: its own line directly above the input. footer: appended, dim, to the hint line under the input.",
       "default": "above-prompt",
-      "options": ["above-prompt", "footer"]
+      "options": [
+        "above-prompt",
+        "footer"
+      ]
     },
     "warn_pct": {
       "type": "number",

@@ -1,7 +1,8 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
+import type { Engine } from 'claude-code/testing'
 import type { On, SessionRateLimit, UsageUnit } from 'claude-code'
 
-import { countdown, DEFAULTS, fit, filled, segments, tokens } from '../hooks/format'
+import { countdown, current, DEFAULTS, fit, filled, segments, tokens } from '../hooks/format'
 
 const NOW = Date.parse('2026-10-03T12:00:00Z')
 const LIMITS: SessionRateLimit[] = [
@@ -45,6 +46,18 @@ describe('format', () => {
     expect(countdown('2026-10-06T16:00:00Z', NOW)).toBe('3d4h')
     expect(countdown('2026-10-03T11:00:00Z', NOW)).toBe('now')
     expect(countdown(undefined, NOW)).toBeUndefined()
+  })
+
+  test('a window that reset while idle reads empty', () => {
+    const later = Date.parse('2026-10-03T15:00:00Z')
+    expect(current(LIMITS[0]!, NOW)).toEqual(LIMITS[0])
+    expect(current(LIMITS[0]!, later)).toEqual({ kind: 'five_hour', percentUsed: 0 })
+    const weekLater = Date.parse('2026-10-07T00:00:00Z')
+    expect(current(LIMITS[1]!, weekLater)).toEqual({
+      kind: 'seven_day',
+      percentUsed: 0,
+      resetsAt: '2026-10-13T16:00:00.000Z',
+    })
   })
 
   test('a meter shows any usage', () => {
@@ -157,5 +170,85 @@ test('a window past the critical threshold turns red', async ($, on) => {
   const ui = await $.ui.mount({ ...BAND(120), surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: '93%' }))?.props.color).toBe('red')
   expect((await ui.find({ type: 'Text', text: '31%' }))?.props.color).toBeUndefined()
+  await ui.unmount()
+})
+
+const USAGE = (input: number, model = 'claude-main') => ({
+  input_tokens: input,
+  output_tokens: 500,
+  cache_read_input_tokens: 100_000,
+  cache_creation_input_tokens: 2_000,
+  model,
+})
+
+function steps(on: On) {
+  on('turn.step', async function* ($, e) {
+    return {
+      turnId: e.turnId,
+      index: e.index,
+      answer: '',
+      toolUses: [],
+      stopReason: 'tool_use' as const,
+      usage: USAGE(1_000, e.model),
+    }
+  })
+}
+
+async function step($: Engine, args: { model: string; agentId?: string }) {
+  const stream = $.turn.step({ turnId: 't1', index: 0, messageCount: 3, ...args })
+  for await (const _ of stream) {
+    // drain
+  }
+}
+
+test('context moves with every step of a turn', async ($, on) => {
+  const measure = measureOf(engine(on))
+  steps(on)
+  await $.session.measure(measure)
+  await step($, { model: 'claude-main' })
+  const ui = await $.ui.mount({ ...BAND(120), surface: 'terminal' })
+  // 1k uncached + 100k cache read + 2k cache written
+  expect((await ui.find({ type: 'Box' }))?.text).toContain('ctx ━━━─── 103k/200k')
+  await ui.unmount()
+})
+
+test('a subagent view shows that subagent’s context', async ($, on) => {
+  const measure = measureOf(engine(on))
+  steps(on)
+  await $.session.measure(measure)
+  await step($, { model: 'claude-main', agentId: 'a1' })
+  await step($, { model: 'claude-small', agentId: 'a2' })
+
+  const band = (agentId?: string) => {
+    const b = BAND(120)
+    return { ...b, surface: 'terminal' as const, props: { ...b.props, view: agentId ? { agentId } : {} } }
+  }
+
+  const main = await $.ui.mount(band())
+  expect((await main.find({ type: 'Box' }))?.text).toContain('ctx ━━━─── 84k/200k')
+  await main.unmount()
+
+  const a1 = await $.ui.mount(band('a1'))
+  const a1Text = (await a1.find({ type: 'Box' }))?.text ?? ''
+  expect(a1Text).toContain('agent ━━━─── 103k/200k')
+  expect(a1Text).not.toContain('ctx')
+  expect(a1Text).toContain('5h')
+  await a1.unmount()
+
+  const fresh = await $.ui.mount(band('a3'))
+  expect((await fresh.find({ type: 'Box' }))?.text).toContain('agent –/200k')
+  await fresh.unmount()
+})
+
+test('limits reset on screen while the session sits idle', async ($, on) => {
+  const { clock, ...measure } = engine(on)
+  await $.session.start({ cwd: '/', source: 'startup' } as never)
+  await $.session.measure(measure)
+  await clock.advance(3 * 60 * 60_000) // past the 5h reset, nothing sent
+  const ui = await $.ui.mount({ ...BAND(120), surface: 'terminal' })
+  const line = (await ui.find({ type: 'Box' }))?.text ?? ''
+  expect(line).toContain('5h ────── 0%')
+  expect(line).not.toContain('↻ now')
+  expect(line).toContain('week ━━━━━━ 93% ↻ 3d1h')
   await ui.unmount()
 })
