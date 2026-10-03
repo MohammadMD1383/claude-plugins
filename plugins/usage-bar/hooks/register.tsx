@@ -2,20 +2,26 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, SessionContextUsage, SessionRateLimit } from 'claude-code'
 
 import type { UsageBarSnapshot } from '../types'
-import { fit, filled, lineText, METER_CELLS, readOptions, segments, SEPARATOR } from './format'
+import { contextTokens, fit, filled, lineText, METER_CELLS, readOptions, segments, SEPARATOR, withAgent } from './format'
 import type { Level, Segment } from './format'
 
 const snapshot = atom({ plugin: 'usage-bar', key: 'snapshot' } as const, null)
+const agents = atom({ plugin: 'usage-bar', key: 'agents' } as const, {})
 const now = atom({ plugin: 'usage-bar', key: 'now' } as const, 0)
 
 const COLOR: Record<Level, string | undefined> = { ok: undefined, warn: 'yellow', critical: 'red' }
 
-function toSnapshot(context: SessionContextUsage, rateLimits: readonly SessionRateLimit[]): UsageBarSnapshot {
+function toSnapshot(
+  context: SessionContextUsage,
+  rateLimits: readonly SessionRateLimit[],
+  previous: UsageBarSnapshot | null,
+): UsageBarSnapshot {
   return {
     tokens: context.tokens,
     window: context.window,
     percent: context.percent,
     limits: rateLimits.map(l => ({ kind: l.kind, percentUsed: l.percentUsed, resetsAt: l.resetsAt })),
+    model: previous?.model,
   }
 }
 
@@ -31,7 +37,7 @@ export const register: Register = (on, options) => {
     const result = await next(e)
     try {
       const usage = await $.session.usage()
-      await update($, snapshot, () => toSnapshot(usage.context, usage.rateLimits))
+      await update($, snapshot, prev => toSnapshot(usage.context, usage.rateLimits, prev))
     } catch {
       // No figures yet; the first session.measure fills them in.
     }
@@ -42,9 +48,27 @@ export const register: Register = (on, options) => {
   })
 
   on('session.measure', async ($, e, next) => {
-    await update($, snapshot, () => toSnapshot(e.context, e.rateLimits))
+    await update($, snapshot, prev => toSnapshot(e.context, e.rateLimits, prev))
     await tick($)
     return next(e)
+  })
+
+  // session.measure comes once a turn ends; each model request inside the turn
+  // reports its own usage, so the context figures move step by step.
+  on('turn.step', async function* ($, e, next) {
+    const result = yield* next(e)
+    if (result.usage) {
+      const used = contextTokens(result.usage)
+      const { agentId } = e
+      if (agentId !== undefined) {
+        await update($, agents, all => withAgent(all, agentId, { tokens: used, model: e.model }))
+      } else {
+        await update($, snapshot, s =>
+          s && { ...s, tokens: used, percent: s.window > 0 ? Math.round((used / s.window) * 100) : s.percent, model: e.model },
+        )
+      }
+    }
+    return result
   })
 
   if (o.placement === 'footer') {
@@ -60,7 +84,9 @@ export const register: Register = (on, options) => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
-    const segs = segments(await read($, snapshot), await read($, now), o)
+    const { agentId } = e.props.view
+    const agent = agentId !== undefined ? (await read($, agents))[agentId] : undefined
+    const segs = segments(await read($, snapshot), await read($, now), o, { agentId, agent })
     if (segs.length === 0) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)
