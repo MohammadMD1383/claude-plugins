@@ -1,17 +1,25 @@
 name: test
 on: [push, pull_request]
 jobs:
-  test:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON manifests
+        run: find . -path ./.git -prune -o \( -name marketplace.json -o -name plugin.json -o -name hooks.json \) -print0 | xargs -0 -n1 python3 -m json.tool > /dev/null
+  usage-guard:
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
         python: ["3.9", "3.12"]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: plugins/usage-guard
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
       - run: python -m unittest discover -s tests -v
-      - run: python -m json.tool .claude-plugin/marketplace.json > /dev/null && python -m json.tool .claude-plugin/plugin.json > /dev/null && python -m json.tool hooks/hooks.json > /dev/null

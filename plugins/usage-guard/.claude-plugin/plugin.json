@@ -6,7 +6,7 @@
   "author": {
     "name": "MohammadMD1383"
   },
-  "repository": "https://github.com/MohammadMD1383/claude-usage-plugin",
+  "repository": "https://github.com/MohammadMD1383/claude-plugins/tree/main/plugins/usage-guard",
   "license": "MIT",
   "keywords": [
     "usage",
