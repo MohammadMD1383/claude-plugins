@@ -35,6 +35,7 @@ Everything comes from Claude Code itself. The mod doesn't poll or send any reque
 - **Reset countdowns** are relative (`42m`, `2h14m`, `3d4h`), so they're right in any time zone. They update every 30 seconds, also while you're idle.
 - **Resets while idle:** when a window's reset time passes with no new response, the bar resets it on its own. The 5-hour window drops to `0%` with no countdown, because a new window only starts with your next message. The weekly window drops to `0%` and counts down to the same time next week.
 - **Other sessions:** usage from Claude on other devices or sessions shows up with this session's next response, not while it's idle.
+- **After `/clear` or `/resume`:** the bar stays. After `/clear` the context shows `–/200k` until the next response. The limits keep their last reading until a response brings a new one.
 - **Narrow terminals:** if the line doesn't fit, the meters go first, then the countdowns.
 
 ## Configuration
@@ -74,13 +75,13 @@ To hide the bar for a moment, collapse the band with `ctrl+x ctrl+a`.
 
 ```bash
 claude plugin validate .
-claude plugin test .          # formatting, sections, widths, colors, footer, per-step and subagent context, idle resets
+claude plugin test .          # formatting, sections, widths, colors, footer, per-step and subagent context, idle resets, /clear
 claude --plugin-dir .         # try it locally; edits hot-reload
 ```
 
 Layout:
 
-- `hooks/register.tsx` holds the hooks. `session.measure` stores the figures, `turn.step` refreshes the context after each model request (per subagent too), a 30-second clock redraws the countdowns, and `ui.render` draws the `AbovePrompt` band (or the `PromptHint` tail).
+- `hooks/register.tsx` holds the hooks. `session.start` (and `classic.SessionStart` after a `/clear` or `/resume`, which fire no `session.start`) seeds the figures, `session.measure` stores them, `turn.step` refreshes the context after each model request (per subagent too), a 30-second clock redraws the countdowns, and `ui.render` draws the `AbovePrompt` band (or the `PromptHint` tail).
 - `hooks/format.ts` holds the pure formatting and fitting logic.
 - `types/index.d.ts` is the session-state contract.
 

@@ -20,6 +20,7 @@ function engine(on: On, rateLimits: SessionRateLimit[] = LIMITS) {
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: NOW, context: { window: 200_000 }, rateLimits: [] } }))
   on('session.measure', ($, e) => ({ changed: e.changed }))
+  on('classic.SessionStart', () => ({}))
   return {
     context: { tokens: 84_312, window: 200_000, percent: 42 },
     rateLimits,
@@ -251,4 +252,35 @@ test('limits reset on screen while the session sits idle', async ($, on) => {
   expect(line).not.toContain('↻ now')
   expect(line).toContain('week ━━━━━━ 93% ↻ 3d1h')
   await ui.unmount()
+})
+
+test('the bar comes back after a /clear, before the next response', async ($, on) => {
+  // A /clear starts a fresh session whose state is empty and fires no session.start.
+  engine(on)
+  await $.classic.SessionStart({ source: 'clear' })
+  const ui = await $.ui.mount({ ...BAND(120), surface: 'terminal' })
+  expect((await ui.find({ type: 'Box' }))?.text).toContain('ctx –/200k')
+  await ui.unmount()
+})
+
+test('a /clear empties the context and keeps the limits', async ($, on) => {
+  const { clock, ...measure } = engine(on)
+  steps(on)
+  await $.session.start({ cwd: '/', source: 'startup' } as never)
+  await $.session.measure(measure)
+  await step($, { model: 'claude-main', agentId: 'a1' })
+  await $.classic.SessionStart({ source: 'clear' })
+  await clock.advance(15 * 60_000)
+
+  const ui = await $.ui.mount({ ...BAND(120), surface: 'terminal' })
+  const line = (await ui.find({ type: 'Box' }))?.text ?? ''
+  expect(line).toContain('ctx –/200k  ·')
+  expect(line).toContain('5h ━━──── 31% ↻ 1h59m')
+  expect(line).toContain('week ━━━━━━ 93%')
+  await ui.unmount()
+
+  const b = BAND(120)
+  const agent = await $.ui.mount({ ...b, surface: 'terminal', props: { ...b.props, view: { agentId: 'a1' } } })
+  expect((await agent.find({ type: 'Box' }))?.text).toContain('agent –/200k')
+  await agent.unmount()
 })

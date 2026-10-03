@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, SessionContextUsage, SessionRateLimit } from 'claude-code'
+import type { EngineInterface, Register, SessionContextUsage, SessionRateLimit, Timer } from 'claude-code'
 
 import type { UsageBarSnapshot } from '../types'
 import { contextTokens, fit, filled, lineText, METER_CELLS, readOptions, segments, SEPARATOR, withAgent } from './format'
@@ -30,20 +30,45 @@ async function tick($: EngineInterface) {
   await update($, now, () => t)
 }
 
+let ticker: Timer | undefined
+
+// Fills the bar from what the engine knows now and starts the countdown clock.
+// Runs at startup and again after a /clear or /resume, which go on under a new
+// session (and so new state) without a session.start.
+async function seed($: EngineInterface, cleared: boolean) {
+  try {
+    const usage = await $.session.usage()
+    await update($, snapshot, prev => {
+      const next = toSnapshot(usage.context, usage.rateLimits, prev)
+      // The limits are the account's, not the conversation's: keep the last
+      // reading until the next response brings a new one.
+      return next.limits.length === 0 && prev ? { ...next, limits: prev.limits } : next
+    })
+  } catch {
+    // No figures yet; the first session.measure fills them in.
+    if (cleared) await update($, snapshot, prev => prev && { ...prev, tokens: undefined, percent: undefined })
+  }
+  if (cleared) await update($, agents, () => ({}))
+  await tick($)
+  // Countdowns move on their own, so redraw them every half minute.
+  ticker?.cancel()
+  ticker = $.clock.every(30_000, () => void tick($))
+}
+
 export const register: Register = (on, options) => {
   const o = readOptions(options as Parameters<typeof readOptions>[0])
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
-    try {
-      const usage = await $.session.usage()
-      await update($, snapshot, prev => toSnapshot(usage.context, usage.rateLimits, prev))
-    } catch {
-      // No figures yet; the first session.measure fills them in.
-    }
-    await tick($)
-    // Countdowns move on their own, so redraw them every half minute.
-    $.clock.every(30_000, () => void tick($))
+    await seed($, false)
+    return result
+  })
+
+  // /clear (and /resume) end the session and go on under a new id with no
+  // session.start, so without this the bar stays empty until the next response.
+  on('classic.SessionStart', async ($, e, next) => {
+    const result = await next(e)
+    if (e.source === 'clear' || e.source === 'resume') await seed($, true)
     return result
   })
 

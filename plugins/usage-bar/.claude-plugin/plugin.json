@@ -1,7 +1,7 @@
 {
   "name": "usage-bar",
   "displayName": "Usage Bar",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A one-line bar above the prompt: context window used/total, 5-hour and weekly limit usage with reset countdowns. Every section is optional.",
   "author": {
     "name": "MohammadMD1383"
