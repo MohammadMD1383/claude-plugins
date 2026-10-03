@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+# Laid by Claude Code when it loads a mod from disk
+.claude-plugin/types/
+plugins/*/tsconfig.json
