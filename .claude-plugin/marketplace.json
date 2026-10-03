@@ -12,6 +12,12 @@
       "source": "./plugins/usage-guard",
       "description": "Usage-limit awareness: conserve, checkpoint and hand off before claude.ai limits cut Claude off.",
       "category": "productivity"
+    },
+    {
+      "name": "usage-bar",
+      "source": "./plugins/usage-bar",
+      "description": "A minimal bar above the prompt: context window used/total, 5-hour and weekly limits with reset countdowns. Every section is optional.",
+      "category": "productivity"
     }
   ]
 }

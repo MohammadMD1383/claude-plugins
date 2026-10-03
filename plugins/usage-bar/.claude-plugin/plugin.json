@@ -1,0 +1,68 @@
+{
+  "name": "usage-bar",
+  "displayName": "Usage Bar",
+  "version": "0.1.0",
+  "description": "A one-line bar above the prompt: context window used/total, 5-hour and weekly limit usage with reset countdowns. Every section is optional.",
+  "author": {
+    "name": "MohammadMD1383"
+  },
+  "repository": "https://github.com/MohammadMD1383/claude-plugins/tree/main/plugins/usage-bar",
+  "license": "MIT",
+  "keywords": ["usage", "context", "rate-limit", "statusline", "mod"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "show_context": {
+      "type": "boolean",
+      "title": "Show context window",
+      "description": "Tokens in the context window, used/total.",
+      "default": true
+    },
+    "show_five_hour": {
+      "type": "boolean",
+      "title": "Show 5-hour limit",
+      "description": "Usage of the 5-hour window and when it resets (Pro/Max plans).",
+      "default": true
+    },
+    "show_weekly": {
+      "type": "boolean",
+      "title": "Show weekly limit",
+      "description": "Usage of the 7-day window and when it resets (Pro/Max plans).",
+      "default": true
+    },
+    "show_reset": {
+      "type": "boolean",
+      "title": "Show reset countdowns",
+      "description": "How long until each limit window resets.",
+      "default": true
+    },
+    "show_meters": {
+      "type": "boolean",
+      "title": "Show meters",
+      "description": "A small bar beside each percentage. Dropped automatically when the terminal is narrow.",
+      "default": true
+    },
+    "placement": {
+      "type": "string",
+      "title": "Placement",
+      "description": "above-prompt: its own line directly above the input. footer: appended, dim, to the hint line under the input.",
+      "default": "above-prompt",
+      "options": ["above-prompt", "footer"]
+    },
+    "warn_pct": {
+      "type": "number",
+      "title": "Warning at (%)",
+      "description": "A section turns yellow from this percentage.",
+      "default": 70,
+      "min": 1,
+      "max": 100
+    },
+    "critical_pct": {
+      "type": "number",
+      "title": "Critical at (%)",
+      "description": "A section turns red from this percentage.",
+      "default": 90,
+      "min": 1,
+      "max": 100
+    }
+  }
+}

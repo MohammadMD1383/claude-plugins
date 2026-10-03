@@ -23,3 +23,16 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m unittest discover -s tests -v
+  usage-bar:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/usage-bar
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code@latest
+      - run: claude plugin validate .
+      - run: claude plugin test .

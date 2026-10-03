@@ -16,6 +16,7 @@ Add the marketplace once, then install whichever plugins you want:
 | Plugin | Description | Install |
 | --- | --- | --- |
 | [usage-guard](plugins/usage-guard) | Makes Claude aware of your claude.ai usage limits so it conserves budget, checkpoints and writes a hand-off before being cut off. | `/plugin install usage-guard@mohammadmd-plugins` |
+| [usage-bar](plugins/usage-bar) | A minimal bar above the prompt: context window used/total, 5-hour and weekly limits with reset countdowns. Every section is optional. A mod; needs Claude Code 2.1.288+. | `/plugin install usage-bar@mohammadmd-plugins` |
 
 ## Repository layout
 
