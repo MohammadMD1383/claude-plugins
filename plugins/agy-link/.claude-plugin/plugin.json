@@ -1,0 +1,98 @@
+{
+  "name": "agy-link",
+  "displayName": "AGY Link",
+  "version": "0.1.0",
+  "description": "Use Antigravity-hosted Claude models through a local gateway (OmniRoute, 9router): shows the gateway's Antigravity quota above the prompt and can point Claude Code at the gateway for you.",
+  "author": {
+    "name": "MohammadMD1383"
+  },
+  "repository": "https://github.com/MohammadMD1383/claude-plugins/tree/main/plugins/agy-link",
+  "license": "MIT",
+  "keywords": [
+    "antigravity",
+    "agy",
+    "gateway",
+    "omniroute",
+    "9router",
+    "usage",
+    "mod"
+  ],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "gateway_url": {
+      "type": "string",
+      "title": "Gateway URL",
+      "description": "Base URL of your local gateway (OmniRoute or 9router), with no path. Default: http://localhost:20128",
+      "default": "http://localhost:20128"
+    },
+    "gateway_key": {
+      "type": "string",
+      "title": "Gateway API key",
+      "description": "The gateway's own API key. Used to read its usage endpoint and, with activate on, as Claude Code's credential for the gateway. Never your claude.ai or Anthropic credentials.",
+      "sensitive": true
+    },
+    "activate": {
+      "type": "boolean",
+      "title": "Point Claude Code at the gateway",
+      "description": "At session start, set ANTHROPIC_BASE_URL (and ANTHROPIC_AUTH_TOKEN from the gateway key) so this session's requests go to the gateway. Off by default: with it on, every session fails while the gateway is down.",
+      "default": false
+    },
+    "usage_url": {
+      "type": "string",
+      "title": "Usage URL (optional)",
+      "description": "Full URL of the quota endpoint. Empty: OmniRoute's <gateway>/api/usage/om-usage?format=json. For 9router use http://localhost:20128/api/usage/<connectionId>. Any endpoint returning {\"windows\":[{\"label\",\"percentUsed\",\"resetsAt\"}]} works too.",
+      "default": ""
+    },
+    "family": {
+      "type": "string",
+      "title": "Model family",
+      "description": "Which Antigravity quota to show: claude (Claude and GPT-OSS share one), gemini, or all.",
+      "default": "claude",
+      "options": [
+        "claude",
+        "gemini",
+        "all"
+      ]
+    },
+    "show_when": {
+      "type": "string",
+      "title": "Show when",
+      "description": "gateway: only while this session's requests go to the gateway. always: whenever the gateway answers.",
+      "default": "gateway",
+      "options": [
+        "gateway",
+        "always"
+      ]
+    },
+    "poll_seconds": {
+      "type": "number",
+      "title": "Refresh every (seconds)",
+      "description": "How often to read the gateway's usage endpoint.",
+      "default": 60,
+      "min": 15,
+      "max": 3600
+    },
+    "show_reset": {
+      "type": "boolean",
+      "title": "Show reset countdowns",
+      "description": "How long until each window resets.",
+      "default": true
+    },
+    "warn_pct": {
+      "type": "number",
+      "title": "Warning at (%)",
+      "description": "A window turns yellow from this percentage used.",
+      "default": 70,
+      "min": 1,
+      "max": 100
+    },
+    "critical_pct": {
+      "type": "number",
+      "title": "Critical at (%)",
+      "description": "A window turns red from this percentage used.",
+      "default": 90,
+      "min": 1,
+      "max": 100
+    }
+  }
+}

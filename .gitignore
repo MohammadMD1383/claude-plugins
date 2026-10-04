@@ -3,3 +3,6 @@ __pycache__/
 # Laid by Claude Code when it loads a mod from disk
 .claude-plugin/types/
 plugins/*/tsconfig.json
+# Scratch output of docs/agy-probe
+docs/agy-probe/.run/
+docs/agy-probe/mock-gateway.log

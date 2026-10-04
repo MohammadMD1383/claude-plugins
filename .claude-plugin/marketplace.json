@@ -18,6 +18,12 @@
       "source": "./plugins/usage-bar",
       "description": "A minimal bar above the prompt: context window used/total, 5-hour and weekly limits with reset countdowns. Every section is optional.",
       "category": "productivity"
+    },
+    {
+      "name": "agy-link",
+      "source": "./plugins/agy-link",
+      "description": "Use Antigravity-hosted Claude models through a local gateway (OmniRoute, 9router): shows the gateway's Antigravity quota above the prompt and can point Claude Code at the gateway.",
+      "category": "productivity"
     }
   ]
 }
