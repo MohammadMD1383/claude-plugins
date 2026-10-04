@@ -1,0 +1,38 @@
+<!--meta
+{
+  "title": "usage-guard: Claude Code Usage Limit Plugin and Hand-off",
+  "h1": "usage-guard: make Claude Code aware of your usage limits",
+  "description": "usage-guard makes Claude Code aware of claude.ai 5-hour and weekly limits, so Claude conserves budget, commits and writes HANDOFF.md before it is cut off.",
+  "plugin": "usage-guard",
+  "language": "Python",
+  "requirements": "Python 3 on PATH",
+  "highlights": [
+    "Zero tokens while usage is normal",
+    "Burn-rate projection, not just a percentage",
+    "Emergency snapshot if the limit hits mid-task"
+  ],
+  "published": "2026-10-03",
+  "related_guides": [
+    "/guides/claude-code-usage-limits/"
+  ]
+}
+-->
+<!-- Extra sections for the usage-guard page. Everything else on the page (facts, install,
+     the README itself) is generated from plugins/usage-guard/ so it can't go stale. -->
+<h2 id="faq">FAQ</h2>
+  <div class="qa">
+    <h3>How do I stop Claude Code from getting cut off mid-task by the usage limit?</h3>
+    <p>Install usage-guard. It tells Claude where it is in the 5-hour and weekly windows, so as the limit approaches Claude works lean, commits in small steps and writes a HANDOFF.md before it is cut off. If the limit still hits, a script writes an emergency snapshot.</p>
+  </div>
+  <div class="qa">
+    <h3>Can I hand off from Claude Code to Codex or another agent?</h3>
+    <p>Yes. HANDOFF.md is written for a reader with no context. Run /usage-guard:handoff, then tell the other agent to continue the work described in HANDOFF.md.</p>
+  </div>
+  <div class="qa">
+    <h3>Does usage-guard work on Windows?</h3>
+    <p>Yes, as long as Python 3 is on your PATH. macOS and Linux have it out of the box; on Windows, install it from python.org.</p>
+  </div>
+  <div class="qa">
+    <h3>What happens if I have extra usage credits enabled?</h3>
+    <p>If extra usage is enabled, hitting the limit bills credits rather than stopping you. Claude is told so, and the thresholds stay the same.</p>
+  </div>

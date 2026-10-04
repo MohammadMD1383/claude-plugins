@@ -1,0 +1,108 @@
+<!--meta
+{
+  "title": "Claude Code Plugin Marketplace by MohammadMD1383",
+  "og_title": "Claude Code plugin marketplace",
+  "og_sub": "Focused, open-source plugins for Claude Code. Add the marketplace once, install any plugin with one command.",
+  "description": "A free, open-source Claude Code plugin marketplace. Focused, tested plugins that document what they run, installed with two commands. MIT licensed.",
+  "path": "/",
+  "type": "home",
+  "published": "2026-10-03",
+  "og": "default",
+  "sources": [".claude-plugin/marketplace.json", "plugins"]
+}
+-->
+<section class="wrap hero">
+  <div>
+    <p class="eyebrow">Claude Code plugin marketplace · MIT</p>
+    <h1>Focused, open-source plugins for Claude Code</h1>
+    <p class="lede">A growing collection of Claude Code plugins. Each one does one job well, documents exactly what it runs, reads and sends, and stays out of Claude's context until it is needed. Add the marketplace once, then install any plugin with a single command.</p>
+    <div class="cta">
+      <a class="btn primary" href="#plugins">Browse {{plugin_count}} {{plugin_word}}</a>
+      <a class="btn" href="#install">How to install</a>
+    </div>
+  </div>
+  {{hero_terminal}}
+</section>
+
+<section class="band section" id="plugins" aria-labelledby="plugins-title">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="plugins-title">Plugins</h2>
+      <p>Every plugin is self-contained and installs from the same marketplace. Use one, or all of them together.</p>
+    </div>
+    {{plugin_cards}}
+    <p class="more"><a href="{{base}}/plugins/">See all plugins by category</a></p>
+  </div>
+</section>
+
+<section class="wrap section" id="install" aria-labelledby="install-title">
+  <div class="section-head">
+    <h2 id="install-title">Install</h2>
+    <p>Run these inside Claude Code. You only add the marketplace once; after that, every plugin in it is one command away.</p>
+  </div>
+  <ol class="steps">
+    <li><strong>Add the marketplace</strong>
+<pre data-lang="text"><code>/plugin marketplace add {{owner_repo}}</code></pre></li>
+    <li><strong>Install any plugin</strong>
+<pre data-lang="text"><code>/plugin install &lt;plugin&gt;@{{market}}</code></pre>
+      <p>Or run <code>/plugin</code> and browse the <strong>Discover</strong> tab.</p></li>
+    <li><strong>Keep them up to date</strong>
+      <p>In <code>/plugin</code> → <strong>Marketplaces</strong>, select <code>{{market}}</code> and turn on auto-update, or update one plugin with <code>claude plugin update &lt;plugin&gt;@{{market}}</code>.</p></li>
+  </ol>
+  <p>Installing from the shell, sharing plugins with a team, or configuring options? Read the <a href="{{base}}/guides/install-claude-code-plugins/">full guide to installing Claude Code plugins</a>.</p>
+</section>
+
+<section class="band section" aria-labelledby="principles-title">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="principles-title">What every plugin here aims for</h2>
+      <p>Plugins run code on your machine and can cost tokens on every request, so these are the rules each one is built to.</p>
+    </div>
+    <ul class="features">
+      <li><strong>One job, done well</strong><span>Small, focused plugins you can combine, instead of one plugin that does everything.</span></li>
+      <li><strong>Cheap on context</strong><span>No always-on prompts or MCP servers unless a plugin truly needs them. Check any plugin with <code>claude plugin details</code>.</span></li>
+      <li><strong>Transparent</strong><span>Each README says what the plugin runs, reads, writes and sends over the network. No telemetry.</span></li>
+      <li><strong>Tested</strong><span>Plugins ship with test suites that run in CI on every push.</span></li>
+      <li><strong>Fails safe</strong><span>A plugin error should never block or break your Claude Code session.</span></li>
+      <li><strong>Free and open</strong><span>MIT licensed. Read the source, fork it, or open an issue on GitHub.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="wrap section" aria-labelledby="guides-title">
+  <div class="section-head">
+    <h2 id="guides-title">Guides</h2>
+    <p>Practical write-ups on getting more out of Claude Code.</p>
+  </div>
+  {{guide_list}}
+</section>
+
+<section class="band section" id="faq" aria-labelledby="faq-title">
+  <div class="prose">
+    <h2 id="faq-title">FAQ</h2>
+    <div class="qa">
+      <h3>What is a Claude Code plugin marketplace?</h3>
+      <p>A marketplace is a catalog of Claude Code plugins, usually a GitHub repository with a .claude-plugin/marketplace.json file. You add it once with /plugin marketplace add, and every plugin it lists can then be installed with /plugin install plugin@marketplace.</p>
+    </div>
+    <div class="qa">
+      <h3>How do I install a plugin from this marketplace?</h3>
+      <p>In Claude Code, run /plugin marketplace add {{owner_repo}} once, then /plugin install followed by the plugin name and @{{market}}. You can also run the same commands from your shell as claude plugin marketplace add and claude plugin install.</p>
+    </div>
+    <div class="qa">
+      <h3>Are these plugins free?</h3>
+      <p>Yes. Every plugin in this marketplace is free and open source under the MIT license.</p>
+    </div>
+    <div class="qa">
+      <h3>Are these official Anthropic plugins?</h3>
+      <p>No. This is an independent community marketplace by MohammadMD1383 and is not affiliated with or endorsed by Anthropic. All source code is public on GitHub.</p>
+    </div>
+    <div class="qa">
+      <h3>Will new plugins be added?</h3>
+      <p>Yes. New plugins appear in the marketplace as they are released. Turn on auto-update for the marketplace in /plugin to get new versions automatically, and watch the GitHub repository to hear about new plugins.</p>
+    </div>
+    <div class="qa">
+      <h3>How do I request a plugin or report a bug?</h3>
+      <p>Open an issue on the GitHub repository. Bug reports, plugin ideas and pull requests are all welcome.</p>
+    </div>
+  </div>
+</section>

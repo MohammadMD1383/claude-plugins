@@ -1,0 +1,38 @@
+<!--meta
+{
+  "title": "usage-bar: Claude Code Context and Usage Limit Status Bar",
+  "h1": "usage-bar: context and usage limits above the Claude Code prompt",
+  "description": "usage-bar is a free Claude Code mod that shows context window used/total and 5-hour and weekly limit usage with reset countdowns in one bar above the prompt.",
+  "plugin": "usage-bar",
+  "language": "TypeScript",
+  "requirements": "Claude Code 2.1.288 or later",
+  "highlights": [
+    "Context updates after every model request",
+    "Yellow at 70%, red at 90% (configurable)",
+    "No scripts, no network calls, no context cost"
+  ],
+  "published": "2026-10-03",
+  "related_guides": [
+    "/guides/claude-code-usage-limits/"
+  ]
+}
+-->
+<!-- Extra sections for the usage-bar page. Everything else on the page (facts, install,
+     the README itself) is generated from plugins/usage-bar/ so it can't go stale. -->
+<h2 id="faq">FAQ</h2>
+  <div class="qa">
+    <h3>How do I see my Claude Code usage limits in the terminal?</h3>
+    <p>Install usage-bar. It shows how much of the 5-hour and weekly limits you have used, with reset countdowns, in one line above the prompt. The numbers appear after the first response of a session on Pro and Max plans.</p>
+  </div>
+  <div class="qa">
+    <h3>How do I see how full the Claude Code context window is?</h3>
+    <p>usage-bar's ctx section shows tokens used out of the window size, for example 84k/200k, and updates after every model request, including for subagents.</p>
+  </div>
+  <div class="qa">
+    <h3>Does usage-bar replace my status line?</h3>
+    <p>No. It draws its own band above the prompt (or in the footer hint line), so your status line stays as it is.</p>
+  </div>
+  <div class="qa">
+    <h3>Why don't the 5-hour and weekly sections show up?</h3>
+    <p>They need a Pro or Max plan and appear after the first response of the session. With an API key, Bedrock or Vertex there are no plan limits, so only the context section is shown.</p>
+  </div>

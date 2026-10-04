@@ -1,0 +1,25 @@
+<!--meta
+{
+  "title": "All Claude Code Plugins in This Marketplace",
+  "h1": "All plugins",
+  "og_title": "All Claude Code plugins in this marketplace",
+  "description": "Every Claude Code plugin in the MohammadMD1383 marketplace, by category, with its version, description and one-line install command. Free and MIT licensed.",
+  "og_sub": "Every plugin in the marketplace, by category. Free, open source, one command to install.",
+  "path": "/plugins/",
+  "type": "collection",
+  "list": "plugins",
+  "published": "2026-10-04",
+  "og": "plugins",
+  "breadcrumb": [["Plugins", null]],
+  "sources": [".claude-plugin/marketplace.json", "plugins"]
+}
+-->
+<section class="wrap section collection">
+  <div class="section-head">
+    <h1>All plugins</h1>
+    <p class="lede">{{plugin_count}} Claude Code {{plugin_word}}, all free and open source. Add the marketplace once, then install any of them with one command.</p>
+<pre data-lang="text"><code>/plugin marketplace add {{owner_repo}}</code></pre>
+  </div>
+  {{plugin_cards:by-category}}
+  <p class="more">New to plugins? Read <a href="{{base}}/guides/install-claude-code-plugins/">how to install Claude Code plugins</a>.</p>
+</section>

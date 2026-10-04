@@ -1,0 +1,148 @@
+<!--meta
+{
+  "title": "How to Install Claude Code Plugins from a Marketplace",
+  "h1": "How to install Claude Code plugins from a marketplace",
+  "description": "Step-by-step guide to installing Claude Code plugins: add a marketplace, install in a session or the shell, pick a scope, configure, update and uninstall.",
+  "og_title": "How to install Claude Code plugins",
+  "og_sub": "Marketplaces, install commands, scopes, configuration, updates and removal.",
+  "path": "/guides/install-claude-code-plugins/",
+  "type": "article",
+  "published": "2026-10-03",
+  "og": "install",
+  "about": ["Claude Code", "Claude Code plugins", "plugin marketplace"],
+  "breadcrumb": [["Guides", "/guides/"], ["Install Claude Code plugins", null]],
+  "order": 10,
+  "nav": "Install Claude Code plugins"
+}
+-->
+<article class="prose article">
+  <h1>How to install Claude Code plugins from a marketplace</h1>
+  <!--stamp-->
+  <p class="lede">Claude Code plugins add commands, skills, hooks and interface mods to Claude Code. They are distributed through <strong>marketplaces</strong>: catalogs, usually a GitHub repository, that list one or more plugins. You add a marketplace once, then install any plugin from it.</p>
+
+  <section class="tldr" aria-labelledby="tldr">
+    <h2 id="tldr">Quick version</h2>
+<pre data-lang="text"><code>/plugin marketplace add MohammadMD1383/claude-plugins
+/plugin install usage-guard@{{market}}</code></pre>
+    <p>The general form is <code>/plugin marketplace add &lt;owner/repo&gt;</code>, then <code>/plugin install &lt;plugin&gt;@&lt;marketplace&gt;</code>, where <code>&lt;marketplace&gt;</code> is the name the marketplace registers under (here <code>{{market}}</code>), not the repository name.</p>
+  </section>
+
+  <nav class="toc" aria-label="On this page">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#session">Install inside a Claude Code session</a></li>
+      <li><a href="#shell">Install from your shell</a></li>
+      <li><a href="#scope">Choose a scope (user, project, local)</a></li>
+      <li><a href="#configure">Configure a plugin</a></li>
+      <li><a href="#update">Update plugins</a></li>
+      <li><a href="#remove">Disable or uninstall</a></li>
+      <li><a href="#trust">Check what a plugin does first</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="session">Install inside a Claude Code session</h2>
+  <ol class="steps">
+    <li><strong>Add the marketplace.</strong> The source can be a GitHub <code>owner/repo</code>, any git URL, a local directory or a hosted <code>marketplace.json</code>.
+<pre data-lang="text"><code>/plugin marketplace add MohammadMD1383/claude-plugins</code></pre>
+      <p>On success Claude Code prints <code>Successfully added marketplace: {{market}}</code>. Add <code>#ref</code> to pin a branch or tag, for example <code>owner/repo#v1.2.0</code>.</p></li>
+    <li><strong>Install the plugin.</strong>
+<pre data-lang="text"><code>/plugin install usage-bar@{{market}}</code></pre>
+      <p>In a session this opens the plugin's details in the <code>/plugin</code> panel, so you can review what it adds and pick a scope before confirming.</p></li>
+    <li><strong>Or browse.</strong> Run <code>/plugin</code> with no arguments. The <strong>Discover</strong> tab lists plugins from all your marketplaces; type to search and press <kbd>Enter</kbd> to open one.</li>
+    <li><strong>Check it loaded.</strong> The <strong>Installed</strong> tab in <code>/plugin</code> lists the plugin with its scope. A plugin's commands appear namespaced, for example <code>/usage-guard:status</code>.</li>
+  </ol>
+  <p>On Claude Code v2.1.275 or later you can add the marketplace and install in one step:</p>
+<pre data-lang="text"><code>/plugin install usage-guard --marketplace MohammadMD1383/claude-plugins</code></pre>
+
+  <h2 id="shell">Install from your shell</h2>
+  <p>The same operations work as ordinary terminal commands, which is handy for setup scripts and dotfiles:</p>
+<pre data-lang="bash"><code>claude plugin marketplace add MohammadMD1383/claude-plugins
+claude plugin install usage-guard@{{market}}
+claude plugin install usage-bar@{{market}}
+claude plugin list</code></pre>
+  <p>Plugins installed from the shell load the next time you start Claude Code, or in an open session after you run <code>/reload-plugins</code>. In <code>claude -p</code> and other non-interactive runs, <code>/plugin</code> isn't available, but plugins you already installed do load.</p>
+
+  <h2 id="scope">Choose a scope</h2>
+  <div class="table">
+    <table>
+      <thead><tr><th>Scope</th><th>Who gets it</th><th>Where it's recorded</th></tr></thead>
+      <tbody>
+        <tr><td><strong>user</strong> (default)</td><td>You, in every project.</td><td>Your user settings.</td></tr>
+        <tr><td><strong>project</strong></td><td>Everyone working in this repository.</td><td><code>.claude/settings.json</code>, which you commit.</td></tr>
+        <tr><td><strong>local</strong></td><td>You, in this repository only.</td><td>Local, uncommitted project settings.</td></tr>
+      </tbody>
+    </table>
+  </div>
+<pre data-lang="bash"><code>claude plugin install usage-guard@{{market}} --scope project</code></pre>
+  <p>Committing a project-scoped plugin turns it on for collaborators but doesn't download it to their machines; each collaborator runs the install command once. When a plugin is set at several scopes, local overrides project, and project overrides user.</p>
+
+  <h2 id="configure">Configure a plugin</h2>
+  <p>Plugins can declare options. You are prompted for the main ones when you enable the plugin, and can change them later in <code>/config</code> or from the plugin's <strong>Configure options</strong> item on the <strong>Installed</strong> tab. From the shell:</p>
+<pre data-lang="bash"><code># show a plugin's options and which are unset
+claude plugin configure usage-bar@{{market}}
+
+# set options at install time
+claude plugin install usage-bar@{{market}} --config show_meters=false</code></pre>
+
+  <h2 id="update">Update plugins</h2>
+  <p>Auto-update is <strong>on by default only for Anthropic's official marketplaces</strong>. For community and third-party marketplaces such as this one it is off; turn it on in <code>/plugin</code> → <strong>Marketplaces</strong> → select the marketplace → <strong>Enable auto-update</strong>.</p>
+  <p>To update now:</p>
+<pre data-lang="bash"><code>claude plugin update usage-guard@{{market}}</code></pre>
+  <p>Or open <code>/plugin</code> → <strong>Marketplaces</strong>, select the marketplace and choose <strong>Update marketplace</strong> to update every plugin you installed from it. Note that <code>claude plugin marketplace update</code> on its own only refreshes listings and leaves installed plugins at their current versions. A running session keeps the version it loaded until you run <code>/reload-plugins</code> or start a new session.</p>
+
+  <h2 id="remove">Disable or uninstall</h2>
+<pre data-lang="bash"><code>claude plugin disable usage-bar@{{market}}
+claude plugin enable usage-bar@{{market}}
+claude plugin uninstall usage-bar@{{market}}            # add --keep-data to keep its data
+claude plugin marketplace remove {{market}}             # also uninstalls its plugins</code></pre>
+  <p>Inside a session, <code>/plugin enable</code>, <code>/plugin disable</code> and <code>/plugin uninstall</code> open the panel to make the same change.</p>
+
+  <h2 id="trust">Check what a plugin does first</h2>
+  <p>A plugin can run hooks, scripts and MCP servers on your machine, so install only from sources you trust and read the details pane before confirming. Two habits help:</p>
+  <ul>
+    <li>Read the plugin's README and source. Good plugins document what they run, read, write and send over the network, like the privacy sections of <a href="{{base}}/plugins/usage-guard/#privacy-network-and-files">usage-guard</a>.</li>
+    <li>Run <code>claude plugin details &lt;name&gt;</code> to see the plugin's components and its <em>Always-on</em> token cost: the tokens it adds to every session where it is enabled.</li>
+  </ul>
+
+  <h2 id="troubleshooting">Troubleshooting</h2>
+  <ul>
+    <li><strong>The install can't find the plugin:</strong> use the marketplace's registered name after <code>@</code> (<code>{{market}}</code>), not the repository name. <code>claude plugin marketplace list</code> shows the names.</li>
+    <li><strong>The plugin installed but does nothing:</strong> open the <strong>Errors</strong> tab in <code>/plugin</code>, and run <code>/reload-plugins</code> or restart Claude Code.</li>
+    <li><strong>A mod doesn't appear:</strong> mods (plugins that draw into the interface, like usage-bar) need a recent Claude Code; usage-bar needs 2.1.288 or later. Check with <code>claude --version</code>.</li>
+    <li><strong>Hooks fail on Windows:</strong> plugins that use scripts need their runtime. usage-guard needs Python 3 on <code>PATH</code>.</li>
+    <li><strong>Plugins missing in the cloud:</strong> cloud sessions, including claude.ai/code in the browser, don't load the plugins installed on your own machine.</li>
+  </ul>
+
+  <h2 id="faq">FAQ</h2>
+  <div class="qa">
+    <h3>What is a Claude Code plugin marketplace?</h3>
+    <p>A marketplace is a catalog of plugins described by a .claude-plugin/marketplace.json file, usually in a git repository. You add it once with /plugin marketplace add, and its plugins then install with /plugin install plugin@marketplace.</p>
+  </div>
+  <div class="qa">
+    <h3>Can I install a Claude Code plugin without opening a session?</h3>
+    <p>Yes. Run claude plugin marketplace add and claude plugin install in your shell. The plugin loads the next time you start Claude Code.</p>
+  </div>
+  <div class="qa">
+    <h3>How do I share a plugin with my team?</h3>
+    <p>Install it with --scope project. That records it in .claude/settings.json, which you commit. Each collaborator then runs the same install command once.</p>
+  </div>
+  <div class="qa">
+    <h3>Do plugins update automatically?</h3>
+    <p>Only when auto-update is on for their marketplace. It is on by default for Anthropic's official marketplaces and off for third-party ones; turn it on from the Marketplaces tab in /plugin.</p>
+  </div>
+
+  <h2 id="sources">Sources</h2>
+  <ul>
+    <li><a href="https://code.claude.com/docs/en/discover-plugins" rel="noopener">Claude Code docs: Install and manage plugins</a></li>
+    <li><a href="https://code.claude.com/docs/en/plugin-marketplaces" rel="noopener">Claude Code docs: Plugin marketplaces</a></li>
+  </ul>
+
+  <h2 id="related">Related</h2>
+  <ul class="related">
+    <li><a href="{{base}}/plugins/usage-guard/">usage-guard<span>Usage-limit awareness and hand-off for Claude.</span></a></li>
+    <li><a href="{{base}}/plugins/usage-bar/">usage-bar<span>Context and limits above the prompt.</span></a></li>
+    <li><a href="{{base}}/guides/claude-code-usage-limits/">Claude Code usage limits explained<span>The 5-hour and weekly windows.</span></a></li>
+  </ul>
+</article>

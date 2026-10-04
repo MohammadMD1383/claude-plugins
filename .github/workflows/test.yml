@@ -7,6 +7,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate JSON manifests
         run: find . -path ./.git -prune -o \( -name marketplace.json -o -name plugin.json -o -name hooks.json \) -print0 | xargs -0 -n1 python3 -m json.tool > /dev/null
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the site and check links, anchors and SEO tags
+        run: python3 site/build.py --out _site
   usage-guard:
     strategy:
       fail-fast: false
