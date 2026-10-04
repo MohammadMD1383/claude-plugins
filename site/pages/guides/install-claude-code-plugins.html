@@ -3,12 +3,16 @@
   "title": "How to Install Claude Code Plugins from a Marketplace",
   "h1": "How to install Claude Code plugins from a marketplace",
   "description": "Step-by-step guide to installing Claude Code plugins: add a marketplace, install in a session or the shell, pick a scope, configure, update and uninstall.",
+  "og_title": "How to install Claude Code plugins",
+  "og_sub": "Marketplaces, install commands, scopes, configuration, updates and removal.",
   "path": "/guides/install-claude-code-plugins/",
   "type": "article",
   "published": "2026-10-03",
   "og": "install",
   "about": ["Claude Code", "Claude Code plugins", "plugin marketplace"],
-  "breadcrumb": [["Install Claude Code plugins", null]]
+  "breadcrumb": [["Guides", "/guides/"], ["Install Claude Code plugins", null]],
+  "order": 10,
+  "nav": "Install Claude Code plugins"
 }
 -->
 <article class="prose article">
@@ -98,7 +102,7 @@ claude plugin marketplace remove {{market}}             # also uninstalls its pl
   <h2 id="trust">Check what a plugin does first</h2>
   <p>A plugin can run hooks, scripts and MCP servers on your machine, so install only from sources you trust and read the details pane before confirming. Two habits help:</p>
   <ul>
-    <li>Read the plugin's README and source. Good plugins document what they run, read, write and send over the network, like the privacy sections of <a href="{{base}}/plugins/usage-guard/#privacy">usage-guard</a>.</li>
+    <li>Read the plugin's README and source. Good plugins document what they run, read, write and send over the network, like the privacy sections of <a href="{{base}}/plugins/usage-guard/#privacy-network-and-files">usage-guard</a>.</li>
     <li>Run <code>claude plugin details &lt;name&gt;</code> to see the plugin's components and its <em>Always-on</em> token cost: the tokens it adds to every session where it is enabled.</li>
   </ul>
 

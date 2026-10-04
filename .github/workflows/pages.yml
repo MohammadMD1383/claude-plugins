@@ -22,6 +22,15 @@ jobs:
           fetch-depth: 0 # full history: page "last updated" dates come from git
       - id: pages
         uses: actions/configure-pages@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Render social images for every page (new plugins and guides included)
+        continue-on-error: true # the committed images are the fallback
+        run: |
+          npm install --silent --prefix "$RUNNER_TEMP/pw" playwright@1.56.1
+          (cd "$RUNNER_TEMP/pw" && npx playwright install --with-deps chromium)
+          NODE_PATH="$RUNNER_TEMP/pw/node_modules" node site/tools/render-images.cjs
       - name: Build site
         run: python3 site/build.py --base-url "${{ steps.pages.outputs.base_url }}" --out _site
         env:

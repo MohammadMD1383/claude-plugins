@@ -3,106 +3,23 @@
   "title": "usage-bar: Claude Code Context and Usage Limit Status Bar",
   "h1": "usage-bar: context and usage limits above the Claude Code prompt",
   "description": "usage-bar is a free Claude Code mod that shows context window used/total and 5-hour and weekly limit usage with reset countdowns in one bar above the prompt.",
-  "path": "/plugins/usage-bar/",
-  "type": "plugin",
   "plugin": "usage-bar",
   "language": "TypeScript",
   "requirements": "Claude Code 2.1.288 or later",
+  "highlights": [
+    "Context updates after every model request",
+    "Yellow at 70%, red at 90% (configurable)",
+    "No scripts, no network calls, no context cost"
+  ],
   "published": "2026-10-03",
-  "og": "usage-bar",
-  "breadcrumb": [["Plugins", "/#plugins"], ["usage-bar", null]],
-  "sources": ["plugins/usage-bar/README.md", "plugins/usage-bar/.claude-plugin/plugin.json"]
+  "related_guides": [
+    "/guides/claude-code-usage-limits/"
+  ]
 }
 -->
-<article class="prose article">
-  <h1>usage-bar: context and usage limits above the Claude Code prompt</h1>
-  <!--stamp-->
-  <p class="lede">A one-line bar that shows how much room you have left: tokens in the context window, and how much of your 5-hour and weekly limits you've used, with reset countdowns. Every section is optional.</p>
-
-  <figure class="term" aria-label="usage-bar above the Claude Code prompt">
-    <div class="term-top" aria-hidden="true"><i></i><i></i><i></i><span>claude</span></div>
-    <div class="term-body">
-<pre>  <span class="d">ctx</span> <span class="g">━━━</span><span class="d">───</span> 84k/200k  <span class="d">·</span>  <span class="d">5h</span> <span class="g">━━</span><span class="d">────</span> 31% <span class="d">↻ 2h14m</span>  <span class="d">·</span>  <span class="d">week</span> <span class="r">━━━━━━</span> <span class="r">93%</span> <span class="d">↻ 3d4h</span></pre>
-<div class="prompt" aria-hidden="true"><span class="d">&gt;</span></div>
-    </div>
-  </figure>
-
-  <ul class="facts" aria-label="Plugin facts">
-    <li><b>Version</b> <span>{{v:usage-bar}}</span></li>
-    <li><b>License</b> <span>MIT, free</span></li>
-    <li><b>Needs</b> <span>Claude Code 2.1.288+</span></li>
-    <li><b>Context cost</b> <span>None</span></li>
-  </ul>
-
-<pre data-lang="text"><code>/plugin marketplace add MohammadMD1383/claude-plugins
-/plugin install usage-bar@{{market}}</code></pre>
-
-  <nav class="toc" aria-label="On this page">
-    <h2>On this page</h2>
-    <ol>
-      <li><a href="#sections">What the bar shows</a></li>
-      <li><a href="#data">Where the numbers come from</a></li>
-      <li><a href="#config">Configuration</a></li>
-      <li><a href="#mod">How it is built</a></li>
-      <li><a href="#faq">FAQ</a></li>
-    </ol>
-  </nav>
-
-  <h2 id="sections">What the bar shows</h2>
-  <div class="table">
-    <table>
-      <thead><tr><th>Section</th><th>What it shows</th></tr></thead>
-      <tbody>
-        <tr><td><code>ctx</code></td><td>Tokens in the context window, used/total (<code>84k/200k</code>). Before the first response it shows <code>–/200k</code>. While you're viewing a subagent's transcript, it is labelled <code>agent</code> and shows that subagent's context instead.</td></tr>
-        <tr><td><code>5h</code></td><td>How much of your 5-hour limit you've used, and how long until it resets.</td></tr>
-        <tr><td><code>week</code></td><td>How much of your weekly limit you've used, and how long until it resets.</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p>Labels and track are dim. A section turns <span class="pill warn">yellow</span> from 70% and <span class="pill crit">red</span> from 90%; both thresholds can be changed. If the line doesn't fit a narrow terminal, the meters go first, then the countdowns.</p>
-
-  <h2 id="data">Where the numbers come from</h2>
-  <p>Everything comes from Claude Code itself. The mod doesn't poll or send any requests.</p>
-  <ul>
-    <li><strong>Context</strong> updates after every model request, so it moves with each tool call during a long turn, not only when the turn ends. Each subagent's context is tracked the same way.</li>
-    <li><strong>Limits</strong> arrive with each response, and also mid-turn whenever a window moves by a whole point. They appear only on Pro and Max plans, after the first response of the session. With an API key, Bedrock or Vertex, only <code>ctx</code> is shown.</li>
-    <li><strong>Reset countdowns</strong> are relative (<code>42m</code>, <code>2h14m</code>, <code>3d4h</code>), so they're right in any time zone, and they update every 30 seconds, also while you're idle.</li>
-    <li><strong>Resets while idle:</strong> when a window's reset time passes with no new response, the 5-hour window drops to <code>0%</code> with no countdown (a new window only starts with your next message) and the weekly window drops to <code>0%</code> and counts down to the same time next week.</li>
-    <li><strong>Other sessions:</strong> usage from Claude on other devices or sessions shows up with this session's next response.</li>
-    <li><strong>After <code>/clear</code> or <code>/resume</code>:</strong> the bar stays. After <code>/clear</code> the context shows <code>–/200k</code> until the next response.</li>
-  </ul>
-
-  <h2 id="config">Configuration</h2>
-  <p>Change these in <code>/config</code>, or under <code>pluginConfigs</code> in <code>settings.json</code>.</p>
-  <div class="table">
-    <table>
-      <thead><tr><th>Option</th><th>Default</th><th>What it does</th></tr></thead>
-      <tbody>
-        <tr><td><code>show_context</code></td><td><code>true</code></td><td>Show the context-window section.</td></tr>
-        <tr><td><code>show_five_hour</code></td><td><code>true</code></td><td>Show the 5-hour limit section.</td></tr>
-        <tr><td><code>show_weekly</code></td><td><code>true</code></td><td>Show the weekly limit section.</td></tr>
-        <tr><td><code>show_reset</code></td><td><code>true</code></td><td>Show reset countdowns.</td></tr>
-        <tr><td><code>show_meters</code></td><td><code>true</code></td><td>Show the small meter beside each value.</td></tr>
-        <tr><td><code>placement</code></td><td><code>above-prompt</code></td><td><code>above-prompt</code> gives the bar its own line. <code>footer</code> appends a compact, dim version to the hint line under the input.</td></tr>
-        <tr><td><code>warn_pct</code></td><td><code>70</code></td><td>Percentage at which a section turns yellow.</td></tr>
-        <tr><td><code>critical_pct</code></td><td><code>90</code></td><td>Percentage at which a section turns red.</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p>Example: show only the limits, without meters.</p>
-<pre data-lang="json"><code>{
-  "pluginConfigs": {
-    "usage-bar@{{market}}": {
-      "options": { "show_context": false, "show_meters": false }
-    }
-  }
-}</code></pre>
-  <p>To hide the bar for a moment, collapse the band with <kbd>ctrl+x</kbd> <kbd>ctrl+a</kbd>.</p>
-
-  <h2 id="mod">How it is built</h2>
-  <p>usage-bar is a <strong>mod</strong>: a plugin of function hooks that draws into Claude Code's own interface, which is why it needs Claude Code 2.1.288 or later. It runs no scripts, makes no network calls and adds nothing to Claude's context. The hooks seed figures at session start, refresh context after each model request, redraw countdowns on a 30-second clock and render the band above the prompt. Formatting and fitting logic is pure and covered by tests.</p>
-
-  <h2 id="faq">FAQ</h2>
+<!-- Extra sections for the usage-bar page. Everything else on the page (facts, install,
+     the README itself) is generated from plugins/usage-bar/ so it can't go stale. -->
+<h2 id="faq">FAQ</h2>
   <div class="qa">
     <h3>How do I see my Claude Code usage limits in the terminal?</h3>
     <p>Install usage-bar. It shows how much of the 5-hour and weekly limits you have used, with reset countdowns, in one line above the prompt. The numbers appear after the first response of a session on Pro and Max plans.</p>
@@ -119,11 +36,3 @@
     <h3>Why don't the 5-hour and weekly sections show up?</h3>
     <p>They need a Pro or Max plan and appear after the first response of the session. With an API key, Bedrock or Vertex there are no plan limits, so only the context section is shown.</p>
   </div>
-
-  <h2 id="related">Related</h2>
-  <ul class="related">
-    <li><a href="{{base}}/plugins/usage-guard/">usage-guard<span>Make Claude act on the numbers: conserve, checkpoint and hand off.</span></a></li>
-    <li><a href="{{base}}/guides/claude-code-usage-limits/">Claude Code usage limits explained<span>How the 5-hour and weekly windows work.</span></a></li>
-    <li><a href="{{repo}}/tree/main/plugins/usage-bar" rel="noopener">Source code<span>TypeScript hooks, formatting logic and tests.</span></a></li>
-  </ul>
-</article>
