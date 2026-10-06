@@ -18,6 +18,12 @@
       "source": "./plugins/usage-bar",
       "description": "A minimal bar above the prompt: context window used/total, 5-hour and weekly limits with reset countdowns. Every section is optional.",
       "category": "productivity"
+    },
+    {
+      "name": "progress-bar",
+      "source": "./plugins/progress-bar",
+      "description": "A progress bar above the prompt that Claude fills in through a tool: exact percentage, current step, time elapsed and time left.",
+      "category": "productivity"
     }
   ]
 }

@@ -42,3 +42,16 @@ jobs:
       - run: npm install -g @anthropic-ai/claude-code@latest
       - run: claude plugin validate .
       - run: claude plugin test .
+  progress-bar:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/progress-bar
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code@latest
+      - run: claude plugin validate .
+      - run: claude plugin test .

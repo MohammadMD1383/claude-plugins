@@ -1,0 +1,35 @@
+<!--meta
+{
+  "title": "progress-bar: A Progress Bar for Long Claude Code Tasks",
+  "h1": "progress-bar: see how far along Claude Code is",
+  "description": "progress-bar is a free Claude Code mod: Claude reports an exact percentage, its current step, time elapsed and time left in a bar above the prompt.",
+  "plugin": "progress-bar",
+  "language": "TypeScript",
+  "requirements": "Claude Code 2.1.291 or later",
+  "highlights": [
+    "Claude reports an exact percentage as it works",
+    "Shows the current step, elapsed time and time left",
+    "Says so when Claude stopped before 100%"
+  ],
+  "published": "2026-10-06"
+}
+-->
+<!-- Extra sections for the progress-bar page. Everything else on the page (facts, install,
+     the README itself) is generated from plugins/progress-bar/ so it can't go stale. -->
+<h2 id="faq">FAQ</h2>
+  <div class="qa">
+    <h3>How do I know how much of a long task Claude Code has finished?</h3>
+    <p>Install progress-bar. Claude gets a tool for reporting how much of the task is done, and the percentage, what it is working on and the time elapsed show in a bar above the prompt.</p>
+  </div>
+  <div class="qa">
+    <h3>Is the percentage accurate?</h3>
+    <p>It is Claude's own estimate of the share of the whole task that is finished, and the plugin tells it to count the work still ahead (tests, verification) and to lower the number when it finds more work. It is far better than no signal, but it is an estimate. The bar also says when Claude has gone quiet or stopped before 100%.</p>
+  </div>
+  <div class="qa">
+    <h3>Does it use the built-in todo list?</h3>
+    <p>No. It is a separate tool that does one thing: set a percentage. That is easier for a model to keep up than a checklist, and it is easier for you to read at a glance.</p>
+  </div>
+  <div class="qa">
+    <h3>Does it cost tokens?</h3>
+    <p>A little: a short instruction in the system prompt and one small tool call at each milestone. Turn the instruction off with the auto_report option if you would rather ask for progress yourself.</p>
+  </div>

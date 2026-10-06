@@ -20,6 +20,7 @@ Add the marketplace once, then install whichever plugins you want:
 | --- | --- | --- |
 | [usage-guard](plugins/usage-guard) | Usage-limit awareness: conserve, checkpoint and hand off before claude.ai limits cut Claude off. Needs Python 3 on PATH. | `/plugin install usage-guard@mohammadmd-plugins` |
 | [usage-bar](plugins/usage-bar) | A minimal bar above the prompt: context window used/total, 5-hour and weekly limits with reset countdowns. Every section is optional. Needs Claude Code 2.1.288 or later. | `/plugin install usage-bar@mohammadmd-plugins` |
+| [progress-bar](plugins/progress-bar) | A progress bar above the prompt that Claude fills in through a tool: exact percentage, current step, time elapsed and time left. Needs Claude Code 2.1.291 or later. | `/plugin install progress-bar@mohammadmd-plugins` |
 <!-- plugins:end -->
 
 ## Repository layout

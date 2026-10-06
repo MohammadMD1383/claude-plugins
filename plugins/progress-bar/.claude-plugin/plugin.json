@@ -1,0 +1,41 @@
+{
+  "name": "progress-bar",
+  "displayName": "Progress Bar",
+  "version": "0.1.0",
+  "description": "A progress bar above the prompt that Claude fills in through a tool: an exact percentage, what it is doing now, time elapsed and time left. See how far along a long task is without asking.",
+  "author": {
+    "name": "MohammadMD1383"
+  },
+  "repository": "https://github.com/MohammadMD1383/claude-plugins/tree/main/plugins/progress-bar",
+  "license": "MIT",
+  "keywords": [
+    "progress",
+    "progress-bar",
+    "status",
+    "long-running",
+    "mod"
+  ],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "auto_report": {
+      "type": "boolean",
+      "title": "Ask Claude to report progress",
+      "description": "Add a short instruction to Claude's system prompt telling it to call the progress tool on longer tasks. Turn off to only have the tool available.",
+      "default": true
+    },
+    "show_eta": {
+      "type": "boolean",
+      "title": "Show time left",
+      "description": "Estimate the time left from how fast the reported percentage has moved. Shown as ~12m once there is enough to go on.",
+      "default": true
+    },
+    "bar_width": {
+      "type": "number",
+      "title": "Bar width",
+      "description": "Cells in the bar. It shrinks on a narrow terminal.",
+      "default": 24,
+      "min": 10,
+      "max": 60
+    }
+  }
+}
