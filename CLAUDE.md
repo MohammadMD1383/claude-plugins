@@ -18,3 +18,4 @@ The website is generated from the repo, so most changes need no site edits. Do t
 - Manifests and website: `python3 site/build.py --out /tmp/site`
 - usage-guard: `cd plugins/usage-guard && python3 -m unittest discover -s tests -v`
 - usage-bar: `cd plugins/usage-bar && claude plugin validate . && claude plugin test .`
+- progress-bar: `cd plugins/progress-bar && claude plugin validate . && claude plugin test . && python3 -m unittest discover -s tests`

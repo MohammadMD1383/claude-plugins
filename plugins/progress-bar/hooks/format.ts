@@ -1,12 +1,26 @@
 import type { ProgressState } from '../types'
 
+export type WakeClaude = 'off' | 'on-failure' | 'always'
+
 export type Options = {
   auto_report: boolean
   show_eta: boolean
   bar_width: number
+  watch_jobs: boolean
+  stall_after: number
+  notify: boolean
+  wake_claude: WakeClaude
 }
 
-export const DEFAULTS: Options = { auto_report: true, show_eta: true, bar_width: 24 }
+export const DEFAULTS: Options = {
+  auto_report: true,
+  show_eta: true,
+  bar_width: 24,
+  watch_jobs: true,
+  stall_after: 120,
+  notify: true,
+  wake_claude: 'off',
+}
 
 export const MIN_CELLS = 10
 export const MAX_STEP = 60
@@ -25,6 +39,14 @@ export function readOptions(raw: Partial<Record<keyof Options, unknown>> | undef
   if (typeof raw.show_eta === 'boolean') o.show_eta = raw.show_eta
   if (typeof raw.bar_width === 'number' && Number.isFinite(raw.bar_width)) {
     o.bar_width = Math.min(60, Math.max(MIN_CELLS, Math.round(raw.bar_width)))
+  }
+  if (typeof raw.watch_jobs === 'boolean') o.watch_jobs = raw.watch_jobs
+  if (typeof raw.notify === 'boolean') o.notify = raw.notify
+  if (typeof raw.stall_after === 'number' && Number.isFinite(raw.stall_after)) {
+    o.stall_after = Math.min(3600, Math.max(10, Math.round(raw.stall_after)))
+  }
+  if (raw.wake_claude === 'off' || raw.wake_claude === 'on-failure' || raw.wake_claude === 'always') {
+    o.wake_claude = raw.wake_claude
   }
   return o
 }

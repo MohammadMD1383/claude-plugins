@@ -1,8 +1,8 @@
 {
   "name": "progress-bar",
   "displayName": "Progress Bar",
-  "version": "0.1.0",
-  "description": "A progress bar above the prompt that Claude fills in through a tool: an exact percentage, what it is doing now, time elapsed and time left. See how far along a long task is without asking.",
+  "version": "0.2.0",
+  "description": "A progress bar above the prompt for long work: Claude fills one in through a tool, and any shell script or command reports its own through a unix socket (pbar), with a warning when a job stalls or dies. See how far along things are without asking.",
   "author": {
     "name": "MohammadMD1383"
   },
@@ -13,6 +13,8 @@
     "progress-bar",
     "status",
     "long-running",
+    "background-jobs",
+    "unix-socket",
     "mod"
   ],
   "types": "./types/index.d.ts",
@@ -36,6 +38,37 @@
       "default": 24,
       "min": 10,
       "max": 60
+    },
+    "watch_jobs": {
+      "type": "boolean",
+      "title": "Watch background jobs",
+      "description": "Start a small hub on a unix socket so scripts and `pbar` can report jobs that show as bars under Claude's. Needs python3.",
+      "default": true
+    },
+    "stall_after": {
+      "type": "number",
+      "title": "Call a job stalled after (seconds)",
+      "description": "Silence that turns a job's row yellow. A job that is slow by nature is given more time automatically.",
+      "default": 120,
+      "min": 10,
+      "max": 3600
+    },
+    "notify": {
+      "type": "boolean",
+      "title": "Notify when a job ends or stalls",
+      "description": "A toast, and a native notification where the terminal has one, so you hear about it when you are away.",
+      "default": true
+    },
+    "wake_claude": {
+      "type": "string",
+      "title": "Wake Claude when a job ends",
+      "description": "off: never. on-failure: when a job fails, dies or stalls. always: also when it finishes. A woken Claude starts a turn of its own.",
+      "default": "off",
+      "options": [
+        "off",
+        "on-failure",
+        "always"
+      ]
     }
   }
 }

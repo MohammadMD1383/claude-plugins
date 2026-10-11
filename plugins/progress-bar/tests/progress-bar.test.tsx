@@ -169,14 +169,14 @@ async function band($: Engine, columns = 120, isWorking = true) {
 test('registers a tool the model can call', async ($, on) => {
   mock.clock(on, { now: NOW })
   on('session.start', ($, e) => ({ cwd: e.cwd }))
-  let spec: { name: string; inputSchema?: { required?: string[] } } | undefined
+  const specs: { name: string; inputSchema?: { required?: string[] } }[] = []
   on('tool.register', (_$, e) => {
-    spec = e as never
+    specs.push(e as never)
     return { value: { tool: TOOL } }
   })
   await $.session.start({ cwd: '/', source: 'startup' } as never)
-  expect(spec?.name).toBe('set_progress')
-  expect(spec?.inputSchema?.required).toEqual(['percent'])
+  expect(specs.map(s => s.name)).toEqual(['set_progress', 'job_status'])
+  expect(specs[0]?.inputSchema?.required).toEqual(['percent'])
 })
 
 test('the bar is not there before Claude reports', async ($, on) => {
@@ -296,7 +296,8 @@ test('a /clear empties the bar and keeps the tool', async ($, on) => {
   })
   await $.session.start({ cwd: '/', source: 'startup' } as never)
   await $.classic.SessionStart({ source: 'clear' })
-  expect(registered).toBe(2)
+  // Both tools, at the start and again after the clear.
+  expect(registered).toBe(4)
 })
 
 test('the tool is always in the list and never asks permission', async ($, on) => {

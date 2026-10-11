@@ -2,14 +2,16 @@
 {
   "title": "progress-bar: A Progress Bar for Long Claude Code Tasks",
   "h1": "progress-bar: see how far along Claude Code is",
-  "description": "progress-bar is a free Claude Code mod: Claude reports an exact percentage, its current step, time elapsed and time left in a bar above the prompt.",
+  "description": "progress-bar is a free Claude Code mod: a progress bar Claude fills in, plus live bars for any shell job, with a warning when a job stalls or dies.",
   "plugin": "progress-bar",
   "language": "TypeScript",
   "requirements": "Claude Code 2.1.291 or later",
   "highlights": [
     "Claude reports an exact percentage as it works",
     "Shows the current step, elapsed time and time left",
-    "Says so when Claude stopped before 100%"
+    "Says so when Claude stopped before 100%",
+    "Any script reports its own bar over a unix socket: pbar run -- your-command",
+    "Tells a stalled or dead job from a slow one, and notifies you"
   ],
   "published": "2026-10-06"
 }
@@ -30,6 +32,14 @@
     <p>No. It is a separate tool that does one thing: set a percentage. That is easier for a model to keep up than a checklist, and it is easier for you to read at a glance.</p>
   </div>
   <div class="qa">
+    <h3>How do I tell whether a long shell command is finished or hung?</h3>
+    <p>Run it as <code>pbar run --label "name" -- your-command</code>. It reports to a bar above the prompt without involving Claude: items done, rate and time left when it can measure them, a turning spinner while reports arrive, a yellow warning when nothing has moved for a while, and a red one the moment the process disappears. You are also notified, so you can leave the screen.</p>
+  </div>
+  <div class="qa">
+    <h3>Does it open a port or need an HTTP tool?</h3>
+    <p>No. Jobs report over an owner-only unix socket whose path is in <code>$PROGRESS_BAR_SOCK</code>, one JSON line per message, so <code>nc -U</code> or a few lines of any language will do. The plugin runs a small Python helper (standard library only) to listen on it for the session.</p>
+  </div>
+  <div class="qa">
     <h3>Does it cost tokens?</h3>
-    <p>A little: a short instruction in the system prompt and one small tool call at each milestone. Turn the instruction off with the auto_report option if you would rather ask for progress yourself.</p>
+    <p>A little: a short instruction in the system prompt and one small tool call at each milestone. Jobs reported through pbar cost nothing, and Claude is only woken when a job ends if you set wake_claude. Turn the instruction off with the auto_report option if you would rather ask for progress yourself.</p>
   </div>

@@ -49,6 +49,7 @@ jobs:
         working-directory: plugins/progress-bar
     steps:
       - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests -v
       - uses: actions/setup-node@v4
         with:
           node-version: 22

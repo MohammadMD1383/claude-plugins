@@ -1,0 +1,419 @@
+#!/usr/bin/env python3
+"""pbar: report a long-running command's progress to Claude Code's progress bar.
+
+The progress-bar plugin keeps a small hub listening on a unix socket for the
+life of the session and exports its path as $PROGRESS_BAR_SOCK, so anything
+Claude runs can report without a model call. The wire format is one JSON object
+per line, so a shell with nothing but `nc` can report too:
+
+    echo '{"id":"shots","op":"set","done":118,"total":240}' | nc -U "$PROGRESS_BAR_SOCK"
+
+Usage:
+    pbar run  [opts] -- COMMAND...   run COMMAND and report on it (output passes through)
+    pbar pipe [opts]                 same, for a pipeline: `cmd | pbar pipe --total 240`
+    pbar start ID [--label L] [--total N] [--pid PID]
+    pbar set ID VALUE [--total N] [--step S]     VALUE: 37 (percent), 37% or 37/240
+    pbar tick ID [N] [--step S]                  count N (default 1) more items done
+    pbar done ID [--msg M]
+    pbar fail ID [--msg M]
+    pbar sock                        print the socket this would report to
+
+Options for run and pipe:
+    --label L    name shown on the bar (default: the command)
+    --id ID      stable id, so a re-run replaces the old row (default: derived)
+    --total N    N items in all; every output line counts as one (or use --match)
+    --match RE   with --total: only lines matching RE count
+Without --total, percentages ("43%") and fractions ("118/240") in the output
+are followed, and a command with neither still shows it is alive and for how
+long it has been quiet.
+
+Reporting never fails your command: with no bar to talk to, pbar says so once
+on stderr and the command runs exactly as it would have.
+"""
+import argparse
+import glob
+import json
+import os
+import re
+import signal
+import socket
+import socketserver
+import subprocess
+import sys
+import threading
+import time
+
+BEAT_SECONDS = 1.0
+ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07")
+PERCENT = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d+)?)\s*%")
+FRACTION = re.compile(r"(?<![\d/.:-])(\d+)\s*(?:/|of)\s*(\d+)(?![\d/:.-])")
+
+
+def tmpdir():
+    return os.environ.get("TMPDIR") or "/tmp"
+
+
+def find_socket():
+    """$PROGRESS_BAR_SOCK, else the newest live socket of any Claude Code session."""
+    path = os.environ.get("PROGRESS_BAR_SOCK")
+    if path:
+        return path
+    found = sorted(glob.glob(os.path.join(tmpdir(), "pbar-*.sock")), key=_mtime, reverse=True)
+    for candidate in found:
+        if _alive(candidate):
+            return candidate
+    return None
+
+
+def _mtime(path):
+    try:
+        return os.path.getmtime(path)
+    except OSError:
+        return 0
+
+
+def _alive(path):
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.settimeout(0.3)
+    try:
+        s.connect(path)
+        return True
+    except OSError:
+        return False
+    finally:
+        s.close()
+
+
+class Wire:
+    """One short-lived connection per message: nothing to keep open, nothing to leak."""
+
+    def __init__(self):
+        self.path = find_socket()
+        self.warned = False
+
+    def send(self, message):
+        if not self.path:
+            return self._unreachable("no progress bar found (is the progress-bar plugin running?)")
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(1.0)
+        try:
+            s.connect(self.path)
+            s.sendall((json.dumps(message, separators=(",", ":")) + "\n").encode())
+            s.recv(16)
+            return True
+        except OSError as e:
+            return self._unreachable("cannot reach the progress bar (%s)" % e.strerror)
+        finally:
+            s.close()
+
+    def _unreachable(self, why):
+        if not self.warned:
+            self.warned = True
+            print("pbar: %s; carrying on without it" % why, file=sys.stderr)
+        return False
+
+
+def slug(text, fallback="job"):
+    out = re.sub(r"[^A-Za-z0-9._-]+", "-", text).strip("-")[:32]
+    return out or fallback
+
+
+def parse_value(raw, total):
+    """'37' -> percent (or items, with a total), '37%' -> percent, '37/240' -> items."""
+    raw = raw.strip()
+    m = re.fullmatch(r"(\d+)\s*/\s*(\d+)", raw)
+    if m:
+        return {"done": int(m.group(1)), "total": int(m.group(2))}
+    m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*%?", raw)
+    if not m:
+        raise SystemExit("pbar: cannot read %r as 37, 37%% or 37/240" % raw)
+    n = float(m.group(1))
+    if total is not None and not raw.endswith("%"):
+        return {"done": int(n), "total": total}
+    return {"percent": n}
+
+
+class Tracker:
+    """Follows a command's output, and reports what it finds once a second."""
+
+    def __init__(self, wire, ident, label, total, match):
+        self.wire, self.id, self.label = wire, ident, label
+        self.total = total
+        self.match = re.compile(match) if match else None
+        self.done = 0 if total else None
+        self.percent = None
+        self.step = None
+        self.pid = os.getpid()
+        self.moved_at = time.time()
+        self.pending = ""
+        self.lock = threading.Lock()
+
+    def feed(self, chunk):
+        text = ANSI.sub("", chunk.decode("utf-8", "replace"))
+        with self.lock:
+            parts = re.split(r"[\r\n]", self.pending + text)
+            self.pending = parts.pop()
+            for line in parts:
+                if line.strip():
+                    self._line(line.strip())
+
+    def _line(self, line):
+        counts = self.total is not None and (self.match is None or self.match.search(line))
+        if self.total is not None:
+            if counts:
+                self.done += 1
+                self.step = line[:80]
+                self.moved_at = time.time()
+            return
+        before = (self.percent, self.done, self.total)
+        m = FRACTION.search(line)
+        if m and 0 < int(m.group(2)) and int(m.group(1)) <= int(m.group(2)):
+            self.done, self.total = int(m.group(1)), int(m.group(2))
+        else:
+            m = PERCENT.search(line)
+            if m and float(m.group(1)) <= 100:
+                self.percent = float(m.group(1))
+        self.step = line[:80]
+        # With a bar to move, only moving it is progress; with none, any output is.
+        if before != (self.percent, self.done, self.total) or (self.percent, self.done) == (None, None):
+            self.moved_at = time.time()
+
+    def message(self, op, **extra):
+        with self.lock:
+            m = {"v": 1, "id": self.id, "op": op, "label": self.label, "pid": self.pid,
+                 "idle": int(max(0, time.time() - self.moved_at))}
+            if self.total is not None:
+                m["total"] = self.total
+            if self.done is not None:
+                m["done"] = self.done
+            if self.percent is not None and self.total is None:
+                m["percent"] = self.percent
+            if self.step:
+                m["step"] = self.step
+        m.update(extra)
+        return m
+
+    def beat(self, stop):
+        while not stop.wait(BEAT_SECONDS):
+            self.wire.send(self.message("set"))
+
+
+def pump(stream, sink, tracker):
+    while True:
+        chunk = os.read(stream.fileno(), 65536)
+        if not chunk:
+            return
+        try:
+            sink.write(chunk)
+            sink.flush()
+        except (OSError, ValueError):
+            pass
+        tracker.feed(chunk)
+
+
+def monitor_options(args, default_label):
+    label = args.label or default_label
+    ident = args.id or "%s-%d" % (slug(label), os.getpid())
+    return ident, label
+
+
+def finish(tracker, code):
+    if code == 0:
+        tracker.wire.send(tracker.message("done"))
+    else:
+        tracker.wire.send(tracker.message("fail", msg="exit %d" % code if code > 0 else "killed by signal %d" % -code))
+
+
+def cmd_run(args, command):
+    if not command:
+        raise SystemExit("pbar run: nothing to run; give the command after --")
+    ident, label = monitor_options(args, " ".join(command)[:48])
+    tracker = Tracker(Wire(), ident, label, args.total, args.match)
+    tracker.wire.send(tracker.message("start"))
+    try:
+        child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 env={**os.environ, "PYTHONUNBUFFERED": "1"})
+    except OSError as e:
+        print("pbar: cannot run %s: %s" % (command[0], e.strerror), file=sys.stderr)
+        tracker.wire.send(tracker.message("fail", msg=e.strerror))
+        return 127
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, lambda n, _f: child.send_signal(n))
+    stop = threading.Event()
+    threading.Thread(target=tracker.beat, args=(stop,), daemon=True).start()
+    pumps = [threading.Thread(target=pump, args=(child.stdout, sys.stdout.buffer, tracker)),
+             threading.Thread(target=pump, args=(child.stderr, sys.stderr.buffer, tracker))]
+    for t in pumps:
+        t.start()
+    try:
+        code = child.wait()
+    except KeyboardInterrupt:
+        code = child.wait()
+    for t in pumps:
+        t.join()
+    stop.set()
+    finish(tracker, code)
+    return code if code >= 0 else 128 - code
+
+
+def cmd_pipe(args):
+    ident, label = monitor_options(args, args.label or "pipeline")
+    tracker = Tracker(Wire(), ident, label, args.total, args.match)
+    tracker.wire.send(tracker.message("start"))
+    stop = threading.Event()
+    threading.Thread(target=tracker.beat, args=(stop,), daemon=True).start()
+    pump(sys.stdin, sys.stdout.buffer, tracker)
+    stop.set()
+    finish(tracker, 0)
+    return 0
+
+
+def cmd_manual(args):
+    wire = Wire()
+    # No pid unless asked: the shell that ran this command is usually gone a moment
+    # later (each of Claude's Bash calls is a new one), and a missing pid is not "died".
+    m = {"v": 1, "id": args.id, "op": args.cmd, "idle": 0}
+    if getattr(args, "pid", None):
+        m["pid"] = args.pid
+    if getattr(args, "label", None):
+        m["label"] = args.label
+    if getattr(args, "step", None):
+        m["step"] = args.step
+    if getattr(args, "msg", None):
+        m["msg"] = args.msg
+    if args.cmd == "start" and args.total:
+        m["total"] = args.total
+    if args.cmd == "set":
+        m["op"] = "set"
+        m.update(parse_value(args.value, args.total))
+    if args.cmd == "tick":
+        m["op"] = "set"
+        m["inc"] = args.n
+        if args.total:
+            m["total"] = args.total
+    wire.send(m)
+    return 0
+
+
+class Hub(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
+    daemon_threads = True
+
+
+def cmd_hub(path):
+    """Listen on a unix socket and print each JSON line received. The mod reads the output."""
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    out = threading.Lock()
+
+    class Handler(socketserver.StreamRequestHandler):
+        def handle(self):
+            while True:
+                raw = self.rfile.readline(65536)
+                if not raw:
+                    return
+                try:
+                    obj = json.loads(raw)
+                    if not isinstance(obj, dict):
+                        raise ValueError
+                except ValueError:
+                    self.wfile.write(b"error: send one JSON object per line\n")
+                    continue
+                with out:
+                    try:
+                        sys.stdout.write(json.dumps(obj, separators=(",", ":")) + "\n")
+                        sys.stdout.flush()
+                    except (OSError, ValueError):
+                        os._exit(0)
+                self.wfile.write(b"ok\n")
+
+    server = Hub(path, Handler)
+    os.chmod(path, 0o600)
+
+    def leave(*_):
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+        os._exit(0)
+
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        signal.signal(sig, leave)
+    parent = os.getppid()
+
+    def watch_parent():
+        while True:
+            time.sleep(2)
+            if os.getppid() != parent:
+                leave()
+
+    threading.Thread(target=watch_parent, daemon=True).start()
+    print(json.dumps({"hub": "ready", "sock": path}), flush=True)
+    server.serve_forever()
+
+
+def build_parser():
+    p = argparse.ArgumentParser(prog="pbar", add_help=True, description=__doc__.split("\n")[0])
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    def monitor(name):
+        s = sub.add_parser(name)
+        s.add_argument("--label")
+        s.add_argument("--id")
+        s.add_argument("--total", type=int)
+        s.add_argument("--match")
+        return s
+
+    monitor("run")
+    monitor("pipe")
+    s = sub.add_parser("start")
+    s.add_argument("id")
+    s.add_argument("--label")
+    s.add_argument("--total", type=int)
+    s.add_argument("--pid", type=int, help="a process whose death means the job died")
+    s = sub.add_parser("set")
+    s.add_argument("id")
+    s.add_argument("value")
+    s.add_argument("--total", type=int)
+    s.add_argument("--step")
+    s = sub.add_parser("tick")
+    s.add_argument("id")
+    s.add_argument("n", nargs="?", type=int, default=1)
+    s.add_argument("--total", type=int)
+    s.add_argument("--step")
+    for name in ("done", "fail"):
+        s = sub.add_parser(name)
+        s.add_argument("id")
+        s.add_argument("--msg")
+    sub.add_parser("sock")
+    s = sub.add_parser("hub")
+    s.add_argument("--sock", required=True)
+    return p
+
+
+def main(argv):
+    command = []
+    if "--" in argv:
+        i = argv.index("--")
+        argv, command = argv[:i], argv[i + 1:]
+    args = build_parser().parse_args(argv)
+    if args.cmd == "run":
+        return cmd_run(args, command)
+    if args.cmd == "pipe":
+        return cmd_pipe(args)
+    if args.cmd == "hub":
+        return cmd_hub(args.sock)
+    if args.cmd == "sock":
+        path = find_socket()
+        print(path or "no progress bar found", file=sys.stdout if path else sys.stderr)
+        return 0 if path else 1
+    return cmd_manual(args)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except KeyboardInterrupt:
+        sys.exit(130)
