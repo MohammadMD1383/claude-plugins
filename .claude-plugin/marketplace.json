@@ -22,7 +22,7 @@
     {
       "name": "progress-bar",
       "source": "./plugins/progress-bar",
-      "description": "A progress bar above the prompt that Claude fills in through a tool: exact percentage, current step, time elapsed and time left.",
+      "description": "A progress bar above the prompt: Claude fills it in through a tool, and any script or command reports its own through a unix socket, with a warning when a job stalls or dies.",
       "category": "productivity"
     }
   ]
