@@ -309,7 +309,7 @@ export const register: Register = (on, options) => {
           </Text>
           {l.tail ? <Text dimColor>{`  ${l.tail}`}</Text> : null}
           {view.phase === 'running' ? null : (
-            <Button key="hide" label=" ✕" onPress={() => update($, isHidden, () => true)} />
+            <Button key="hide" label="✕" onPress={() => update($, isHidden, () => true)} />
           )}
         </Box>
       )
@@ -339,7 +339,7 @@ export const register: Register = (on, options) => {
           {r.tone === 'running' ? null : (
             <Button
               key={`x-${j.id}`}
-              label=" ✕"
+              label="✕"
               onPress={() => update($, jobs, prev => Object.fromEntries(Object.entries(prev ?? {}).filter(([id]) => id !== j.id)))}
             />
           )}
