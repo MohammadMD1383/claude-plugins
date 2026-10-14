@@ -79,6 +79,9 @@ class Levels(unittest.TestCase):
         self.assertAlmostEqual(a["worst"]["eta"], 15.0, places=1)
         # Fast burn at low usage is ignored (noisy).
         self.assertEqual(assessment(30, rate=5.0)["level"], ug.OK)
+        # 50-60% used must never hand off, however fast parallel agents burn.
+        self.assertEqual(assessment(50, rate=3.0)["level"], ug.OK)
+        self.assertEqual(assessment(60, rate=4.0)["level"], ug.OK)
 
     def test_reset_before_exhaustion_downgrades(self):
         self.assertEqual(assessment(90, resets_in_min=3)["level"], ug.NOTICE)

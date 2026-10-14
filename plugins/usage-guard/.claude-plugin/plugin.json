@@ -1,7 +1,7 @@
 {
   "name": "usage-guard",
   "displayName": "Usage Guard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Makes Claude aware of your claude.ai 5-hour and weekly usage limits: conserves budget as they approach, checkpoints and writes an agent-agnostic HANDOFF.md before the cutoff, and auto-captures state if the limit hits mid-task. Zero context cost while usage is normal.",
   "author": {
     "name": "MohammadMD1383"

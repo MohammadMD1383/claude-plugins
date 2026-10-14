@@ -20,7 +20,7 @@ import os
 import sys
 import time
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 OK, NOTICE, WRAPUP, CRITICAL = 0, 1, 2, 3
 LEVEL_NAMES = ("ok", "notice", "wrap-up", "critical")
@@ -35,8 +35,9 @@ DEFAULTS = {
     "notice_eta_min": 45,
     "wrapup_eta_min": 20,
     "critical_eta_min": 8,
-    # Burn-rate projections only escalate above this usage (rates are noisy early).
-    "eta_min_pct": 50,
+    # Burn-rate projections only escalate above this usage. Rates are noisy early, and
+    # parallel agents burn fast, so a lower gate hands off with half the budget left.
+    "eta_min_pct": 65,
     # A window resetting within this many minutes never forces a hand-off.
     "reset_grace_min": 5,
     "handoff_file": "HANDOFF.md",
