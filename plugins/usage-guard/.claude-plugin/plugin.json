@@ -1,8 +1,8 @@
 {
   "name": "usage-guard",
   "displayName": "Usage Guard",
-  "version": "1.0.0",
-  "description": "Makes Claude aware of your claude.ai 5-hour and weekly usage limits: conserves budget as they approach, checkpoints and writes an agent-agnostic HANDOFF.md before the cutoff, and auto-captures state if the limit hits mid-task. Zero context cost while usage is normal.",
+  "version": "1.0.2",
+  "description": "Makes Claude aware of your claude.ai 5-hour and weekly usage limits: tells Claude where it stands as they approach, then checkpoints and writes an agent-agnostic HANDOFF.md near the cutoff, and auto-captures state if the limit hits mid-task. Zero context cost while usage is normal.",
   "author": {
     "name": "MohammadMD1383"
   },
@@ -19,8 +19,8 @@
     "wrapup_pct": {
       "type": "number",
       "title": "Wrap-up threshold (%)",
-      "description": "Usage % of any limit window at which Claude stops starting new work and hands off. The burn-rate projection can trigger it earlier.",
-      "default": 88,
+      "description": "Usage % of any limit window at which Claude stops starting new work and hands off.",
+      "default": 95,
       "min": 10,
       "max": 100
     },
@@ -28,14 +28,14 @@
       "type": "number",
       "title": "Critical threshold (%)",
       "description": "Usage % at which Claude must hand off immediately.",
-      "default": 95,
+      "default": 98,
       "min": 10,
       "max": 100
     },
     "notice_pct": {
       "type": "number",
-      "title": "Conserve threshold (%)",
-      "description": "Usage % at which Claude starts working leaner (no broad exploration or subagents).",
+      "title": "Notice threshold (%)",
+      "description": "Usage % at which Claude is told, once, how much of the limit is used. Informational only; it changes nothing.",
       "default": 75,
       "min": 1,
       "max": 100

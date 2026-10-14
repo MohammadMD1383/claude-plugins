@@ -2,7 +2,7 @@
 {
   "title": "usage-guard: Claude Code Usage Limit Plugin and Hand-off",
   "h1": "usage-guard: make Claude Code aware of your usage limits",
-  "description": "usage-guard makes Claude Code aware of claude.ai 5-hour and weekly limits, so Claude conserves budget, commits and writes HANDOFF.md before it is cut off.",
+  "description": "usage-guard makes Claude Code aware of claude.ai 5-hour and weekly limits, so Claude knows where it stands and writes HANDOFF.md before it is cut off.",
   "plugin": "usage-guard",
   "language": "Python",
   "requirements": "Python 3 on PATH",
@@ -22,7 +22,7 @@
 <h2 id="faq">FAQ</h2>
   <div class="qa">
     <h3>How do I stop Claude Code from getting cut off mid-task by the usage limit?</h3>
-    <p>Install usage-guard. It tells Claude where it is in the 5-hour and weekly windows, so as the limit approaches Claude works lean, commits in small steps and writes a HANDOFF.md before it is cut off. If the limit still hits, a script writes an emergency snapshot.</p>
+    <p>Install usage-guard. It tells Claude where it is in the 5-hour and weekly windows, so Claude knows where it stands, and past 95% it commits in small steps and writes a HANDOFF.md before it is cut off. If the limit still hits, a script writes an emergency snapshot.</p>
   </div>
   <div class="qa">
     <h3>Can I hand off from Claude Code to Codex or another agent?</h3>

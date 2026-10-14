@@ -109,7 +109,7 @@ echo "${out:-limits: waiting for first response}"</code></pre>
 
   <h2 id="avoid">How to avoid getting cut off</h2>
   <h3 id="avoid-aware">1. Make Claude aware of the limits</h3>
-  <p><a href="{{base}}/plugins/usage-guard/">usage-guard</a> feeds the limit data to Claude through hooks. It adds no tokens at normal usage, then escalates: work lean at 75%, write and commit <code>HANDOFF.md</code> at 88%, stop starting new work at 95%. Each step can trigger earlier based on burn rate. If the limit hits anyway, a script writes an emergency snapshot of the branch, uncommitted files and open tasks.</p>
+  <p><a href="{{base}}/plugins/usage-guard/">usage-guard</a> feeds the limit data to Claude through hooks. It adds no tokens at normal usage. At 75% it only tells Claude where it stands. Past 95% it writes and commits <code>HANDOFF.md</code>, and past 98% it stops starting new work. If the limit hits anyway, a script writes an emergency snapshot of the branch, uncommitted files and open tasks.</p>
   <h3 id="avoid-commit">2. Commit in small steps</h3>
   <p>Ask Claude to commit after every finished task. A limit that hits between commits then costs minutes, not the whole change.</p>
   <h3 id="avoid-handoff">3. Keep a hand-off note</h3>
@@ -156,7 +156,7 @@ echo "${out:-limits: waiting for first response}"</code></pre>
 
   <h2 id="related">Related</h2>
   <ul class="related">
-    <li><a href="{{base}}/plugins/usage-guard/">usage-guard<span>Make Claude conserve, checkpoint and hand off before the limit.</span></a></li>
+    <li><a href="{{base}}/plugins/usage-guard/">usage-guard<span>Make Claude checkpoint and hand off before the limit.</span></a></li>
     <li><a href="{{base}}/plugins/usage-bar/">usage-bar<span>See context and both limit windows above the prompt.</span></a></li>
     <li><a href="{{base}}/guides/install-claude-code-plugins/">Install Claude Code plugins<span>Marketplaces, scopes, updates and removal.</span></a></li>
   </ul>

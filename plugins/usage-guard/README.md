@@ -9,9 +9,9 @@ usage-guard gives Claude that awareness, and it stays silent until it matters:
 | Usage | What Claude is told | What else happens |
 | --- | --- | --- |
 | Normal | Nothing. **Zero tokens.** | |
-| **Conserve** (≥75%, or ~45 min left at the current pace) | Work lean: targeted reads, no broad exploration or subagents, commit after each finished task. | Status line turns yellow. |
-| **Wrap-up** (≥88%, or ~20 min left) | Write `HANDOFF.md` and commit it now. Then continue only in small committed steps, keeping the hand-off current. | New subagents are blocked. If Claude tries to end a turn with uncommitted work and no hand-off, it is sent back once to finish them. You see a notice. |
-| **Critical** (≥95%, or ~8 min left) | Start nothing new. Make sure the hand-off is current and committed, tell the user, and stop. | |
+| **Notice** (≥75%, or ~45 min left at the current pace once usage is ≥65%) | One informational line, once: the window, the percentage and the reset time. No change in behavior. | Status line turns yellow. |
+| **Wrap-up** (≥95%) | Write `HANDOFF.md` and commit it now. Then continue only in small committed steps, keeping the hand-off current. | New subagents are blocked. If Claude tries to end a turn with uncommitted work and no hand-off, it is sent back once to finish them. You see a notice. |
+| **Critical** (≥98%) | Start nothing new. Make sure the hand-off is current and committed, tell the user, and stop. | |
 | **Limit hit** | (Claude can't act any more.) | The plugin writes an emergency snapshot to `HANDOFF.md` without the model: branch, uncommitted files, your last request, open tasks. You also get a desktop notification. |
 | **After reset** | One line: a recent `HANDOFF.md` exists, so read it before continuing previous work. | |
 
@@ -56,7 +56,7 @@ Requirements: Python 3 on `PATH`. macOS and Linux have it out of the box; on Win
 
 The cache is account-wide, so several Claude sessions running in parallel all see the shared burn.
 
-**Burn-rate projection.** A raw percentage misleads: 85% with three hours left can be fine, while 70% burning 2%/min is about to run out. usage-guard keeps a short history of readings and projects the minutes until the limit. That projection can escalate earlier than the percentage thresholds. It can also hold back a hand-off when the window will reset before you would run out.
+**Burn-rate projection.** A raw percentage misleads: 85% with three hours left can be fine, while 70% burning 2%/min is about to run out. usage-guard keeps a short history of readings and projects the minutes until the limit. By default the projection only raises the informational notice, and only once usage is at least `eta_min_pct` (65%), so a fast burn never triggers a hand-off. To let it escalate, set `wrapup_eta_min` (for example 20) or `critical_eta_min` to a number of minutes; 0 leaves that level to the percentage threshold. It can also hold back a hand-off when the window will reset before you would run out.
 
 ## Why it stays cheap
 
@@ -96,8 +96,9 @@ The main options are prompted when you enable the plugin and can be changed unde
 
 ```json
 {
-  "notice_pct": 75, "wrapup_pct": 88, "critical_pct": 95,
-  "notice_eta_min": 45, "wrapup_eta_min": 20, "critical_eta_min": 8,
+  "notice_pct": 75, "wrapup_pct": 95, "critical_pct": 98,
+  "notice_eta_min": 45, "wrapup_eta_min": 0, "critical_eta_min": 0,
+  "eta_min_pct": 65,
   "wrapup_policy": "incremental",
   "handoff_file": "HANDOFF.md",
   "auto_commit": true,
@@ -140,7 +141,7 @@ Everything the plugin runs, reads, sends and writes:
 ## Development
 
 ```bash
-python3 -m unittest discover -s tests -v   # 24 tests: parsing, levels, burn rate, hooks, snapshot, setup, fetch
+python3 -m unittest discover -s tests -v   # 25 tests: parsing, levels, burn rate, hooks, snapshot, setup, fetch
 claude plugin validate . --strict
 claude --plugin-dir .                       # try it locally
 ```

@@ -68,32 +68,46 @@ class Levels(unittest.TestCase):
     def test_thresholds(self):
         self.assertEqual(assessment(40)["level"], ug.OK)
         self.assertEqual(assessment(76)["level"], ug.NOTICE)
-        self.assertEqual(assessment(89)["level"], ug.WRAPUP)
-        self.assertEqual(assessment(96)["level"], ug.CRITICAL)
+        # Below 95% the plugin only informs; no hand-off.
+        self.assertEqual(assessment(94)["level"], ug.NOTICE)
+        self.assertEqual(assessment(96)["level"], ug.WRAPUP)
+        self.assertEqual(assessment(99)["level"], ug.CRITICAL)
         self.assertEqual(assessment(100)["level"], ug.CRITICAL)
 
-    def test_burn_rate_escalates_early(self):
-        # 70% but burning 2%/min: ~15 min left -> wrap-up before the % threshold.
+    def test_burn_rate_only_informs(self):
+        # 70% burning 2%/min (~15 min left): a notice, never a hand-off.
         a = assessment(70, rate=2.0)
-        self.assertEqual(a["level"], ug.WRAPUP)
+        self.assertEqual(a["level"], ug.NOTICE)
         self.assertAlmostEqual(a["worst"]["eta"], 15.0, places=1)
-        # Fast burn at low usage is ignored (noisy).
+        # Even 94% burning 5%/min stays a notice.
+        self.assertEqual(assessment(94, rate=5.0)["level"], ug.NOTICE)
+        # Fast burn at 50-60% used is ignored entirely (noisy, parallel agents).
         self.assertEqual(assessment(30, rate=5.0)["level"], ug.OK)
+        self.assertEqual(assessment(50, rate=3.0)["level"], ug.OK)
+        self.assertEqual(assessment(60, rate=4.0)["level"], ug.OK)
+
+    def test_burn_rate_escalation_is_opt_in(self):
+        now = 1000000.0
+        cfg = dict(CFG, wrapup_eta_min=20)
+        state = {"windows": {"five_hour": {"pct": 70, "resets_at": now + 7200, "t": now}},
+                 "samples": {"five_hour": [[now - 600, 50], [now, 70]]}}
+        self.assertEqual(ug.assess(state, cfg, now)["level"], ug.WRAPUP)
 
     def test_reset_before_exhaustion_downgrades(self):
-        self.assertEqual(assessment(90, resets_in_min=3)["level"], ug.NOTICE)
-        # Slow burn, reset in 20 min, 30 min of budget left: no hand-off needed.
-        self.assertEqual(assessment(91, resets_in_min=20, rate=0.3)["level"], ug.NOTICE)
-        # Fast burn beats the reset: hand off (9 min left -> wrap-up, 4 min left -> critical).
-        self.assertEqual(assessment(91, resets_in_min=20, rate=1.0)["level"], ug.WRAPUP)
-        self.assertEqual(assessment(96, resets_in_min=20, rate=1.0)["level"], ug.CRITICAL)
+        self.assertEqual(assessment(97, resets_in_min=3)["level"], ug.NOTICE)
+        # Reset before we would run out (30 min of budget, 20 min to reset): no hand-off.
+        self.assertEqual(assessment(97, resets_in_min=20, rate=0.1)["level"], ug.NOTICE)
+        self.assertEqual(assessment(97, resets_in_min=20, rate=0.05)["level"], ug.NOTICE)
+        # Burning faster than the reset arrives: hand off.
+        self.assertEqual(assessment(97, resets_in_min=20, rate=1.0)["level"], ug.WRAPUP)
+        self.assertEqual(assessment(99, resets_in_min=20, rate=1.0)["level"], ug.CRITICAL)
 
     def test_expired_window_ignored(self):
         self.assertEqual(assessment(99, resets_in_min=-1)["level"], ug.OK)
 
     def test_model_scoped_window(self):
         now = 1000000.0
-        state = {"windows": {"seven_day_opus": {"pct": 97, "resets_at": now + 86400, "t": now}}, "samples": {}}
+        state = {"windows": {"seven_day_opus": {"pct": 99, "resets_at": now + 86400, "t": now}}, "samples": {}}
         self.assertEqual(ug.assess(state, CFG, now, "claude-sonnet-5-5")["level"], ug.OK)
         a = ug.assess(state, CFG, now, "claude-opus-5-5")
         self.assertEqual(a["level"], ug.CRITICAL)
@@ -110,15 +124,15 @@ class Decide(unittest.TestCase):
         now = 1000000.0
         ss = {}
         self.assertIsNone(ug.decide(ss, "main", assessment(50, now=now), CFG, now))
-        m = ug.decide(ss, "main", assessment(89, now=now), CFG, now)
-        self.assertIn("Hand-off protocol", m)
-        self.assertIsNone(ug.decide(ss, "main", assessment(89, now=now), CFG, now))
         m = ug.decide(ss, "main", assessment(96, now=now), CFG, now)
+        self.assertIn("Hand-off protocol", m)
+        self.assertIsNone(ug.decide(ss, "main", assessment(96, now=now), CFG, now))
+        m = ug.decide(ss, "main", assessment(99, now=now), CFG, now)
         self.assertIn("Start nothing new", m)
         self.assertNotIn("1. Leave the code consistent", m)  # protocol only sent once
         for _ in range(int(CFG["remind_every"]) - 1):
-            self.assertIsNone(ug.decide(ss, "main", assessment(96, now=now), CFG, now))
-        self.assertIn("Reminder", ug.decide(ss, "main", assessment(96, now=now), CFG, now))
+            self.assertIsNone(ug.decide(ss, "main", assessment(99, now=now), CFG, now))
+        self.assertIn("Reminder", ug.decide(ss, "main", assessment(99, now=now), CFG, now))
         later = now + 121 * 60
         m = ug.decide(ss, "main", assessment(2, now=later), CFG, later)
         self.assertIn("reset", m)
@@ -126,17 +140,19 @@ class Decide(unittest.TestCase):
 
     def test_policies(self):
         now = 1000000.0
-        inc = ug.decide({}, "main", assessment(89, now=now), CFG, now)
+        inc = ug.decide({}, "main", assessment(96, now=now), CFG, now)
         self.assertIn("keep going carefully", inc)
         stop_cfg = dict(CFG, wrapup_policy="stop")
-        stop = ug.decide({}, "main", assessment(89, now=now), stop_cfg, now)
+        stop = ug.decide({}, "main", assessment(96, now=now), stop_cfg, now)
         self.assertIn("don't start new tasks", stop)
-        self.assertIn("propose handing off", ug.short_message(ug.WRAPUP, assessment(89, now=now), stop_cfg, now, prompt=True))
+        self.assertIn("propose handing off", ug.short_message(ug.WRAPUP, assessment(96, now=now), stop_cfg, now, prompt=True))
 
     def test_subagent_message(self):
         now = 1000000.0
-        m = ug.decide({}, "agent-1", assessment(90, now=now), CFG, now, subagent=True)
+        m = ug.decide({}, "agent-1", assessment(96, now=now), CFG, now, subagent=True)
         self.assertIn("return your result", m)
+        # A plain notice is for the main agent only.
+        self.assertIsNone(ug.decide({}, "agent-2", assessment(80, now=now), CFG, now, subagent=True))
 
 
 class HookProcess(unittest.TestCase):
@@ -200,7 +216,7 @@ class HookProcess(unittest.TestCase):
         self.assertIn("5h 91%", out)
 
     def test_wrapup_flow(self):
-        self.feed(90)
+        self.feed(96)
         out = self.hook("PostToolUse", tool_name="Edit")
         ctx = out["hookSpecificOutput"]["additionalContext"]
         self.assertIn("Hand-off protocol", ctx)
@@ -228,7 +244,7 @@ class HookProcess(unittest.TestCase):
 
     def test_stop_guard_catches_bash_edits(self):
         self.hook("SessionStart", source="startup")  # records the git baseline
-        self.feed(90)
+        self.feed(96)
         self.hook("PostToolUse", tool_name="Bash")
         with open(os.path.join(self.repo, "made_by_bash.py"), "w") as f:
             f.write("x = 1\n")
@@ -238,12 +254,12 @@ class HookProcess(unittest.TestCase):
 
     def test_stop_ignores_sessions_without_work(self):
         self.hook("SessionStart", source="startup")
-        self.feed(90)
+        self.feed(96)
         self.hook("PostToolUse", tool_name="Read")
         self.assertIsNone(self.hook("Stop", stop_hook_active=False))
 
     def test_stop_passes_after_handoff(self):
-        self.feed(90)
+        self.feed(96)
         self.hook("PostToolUse", tool_name="Write")
         time.sleep(0.05)
         with open(os.path.join(self.repo, "HANDOFF.md"), "w") as f:
@@ -254,7 +270,7 @@ class HookProcess(unittest.TestCase):
         self.assertIsNone(self.hook("Stop", stop_hook_active=False))
 
     def test_reannounce_after_compact(self):
-        self.feed(90)
+        self.feed(96)
         self.assertIn("Hand-off protocol", self.hook("PostToolUse", tool_name="Read")["hookSpecificOutput"]["additionalContext"])
         self.assertIsNone(self.hook("PostToolUse", tool_name="Read"))
         out = self.hook("SessionStart", source="compact")
