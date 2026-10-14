@@ -10,7 +10,7 @@
     {
       "name": "usage-guard",
       "source": "./plugins/usage-guard",
-      "description": "Usage-limit awareness: conserve, checkpoint and hand off before claude.ai limits cut Claude off.",
+      "description": "Usage-limit awareness: know your limits, then checkpoint and hand off before claude.ai limits cut Claude off.",
       "category": "productivity"
     },
     {

@@ -20,7 +20,7 @@ import os
 import sys
 import time
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 OK, NOTICE, WRAPUP, CRITICAL = 0, 1, 2, 3
 LEVEL_NAMES = ("ok", "notice", "wrap-up", "critical")
@@ -28,15 +28,16 @@ LEVEL_NAMES = ("ok", "notice", "wrap-up", "critical")
 DEFAULTS = {
     "enabled": True,
     # Percentage thresholds (per window).
+    # Below wrapup_pct the plugin only informs; the hand-off starts at wrapup_pct.
     "notice_pct": 75,
-    "wrapup_pct": 88,
-    "critical_pct": 95,
-    # Projected minutes until the limit at the current burn rate.
+    "wrapup_pct": 95,
+    "critical_pct": 98,
+    # Projected minutes until the limit at the current burn rate. By default the
+    # projection can only raise an informational notice; 0 disables a level.
     "notice_eta_min": 45,
-    "wrapup_eta_min": 20,
-    "critical_eta_min": 8,
-    # Burn-rate projections only escalate above this usage. Rates are noisy early, and
-    # parallel agents burn fast, so a lower gate hands off with half the budget left.
+    "wrapup_eta_min": 0,
+    "critical_eta_min": 0,
+    # Burn-rate projections only apply above this usage (rates are noisy early).
     "eta_min_pct": 65,
     # A window resetting within this many minutes never forces a hand-off.
     "reset_grace_min": 5,
@@ -460,11 +461,9 @@ def message_for(level, a, cfg, now, subagent=False, with_protocol=False):
         if level >= WRAPUP:
             return ("[usage-guard] Account %s. Wrap up now: stop exploring and return your result so far "
                     "plus what remains undone, briefly." % d)
-        return "[usage-guard] Account %s. Be economical: targeted searches, no broad exploration." % d
+        return None
     if level == NOTICE:
-        return ("[usage-guard] %s.%s Conserve budget: prefer targeted Grep/Read (offset/limit) over broad "
-                "exploration, avoid subagents and re-reading large files, and commit after each finished "
-                "task so a cutoff loses little." % (d, extra))
+        return "[usage-guard] FYI: %s.%s No action needed; carry on as normal." % (d, extra)
     proto = ("\n" + protocol_text(cfg)) if with_protocol else " (Hand-off protocol: see earlier usage-guard note.)"
     if level == WRAPUP and cfg["wrapup_policy"] != "stop":
         return ("[usage-guard] %s.%s The limit is close, so make the work interruption-safe now, then keep "
@@ -490,8 +489,6 @@ def short_message(level, a, cfg, now, prompt=False):
     if prompt and level >= WRAPUP:
         return ("[usage-guard] %s. Tell the user about the limit before starting; for anything non-trivial, "
                 "propose handing off (%s) instead of starting it." % (d, h))
-    if prompt:
-        return "[usage-guard] %s. Keep this request lean; commit after each finished task." % d
     if incremental:
         return "[usage-guard] Reminder: %s. Small committed steps only; keep %s current." % (d, h)
     return "[usage-guard] Reminder: %s. Hand off and stop now if not done (%s)." % (d, h)
@@ -868,7 +865,7 @@ def cmd_hook(event_arg):
             if "base" not in ss:
                 ss["base"] = git_fingerprint(cwd)
             msg = decide(ss, key, a, cfg, now)
-            if not msg and a["level"] >= NOTICE:
+            if not msg and a["level"] >= WRAPUP:
                 msg = short_message(a["level"], a, cfg, now, prompt=True)
             if msg:
                 out = ctx(event, msg)

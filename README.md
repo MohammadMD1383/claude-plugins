@@ -18,7 +18,7 @@ Add the marketplace once, then install whichever plugins you want:
 <!-- plugins:start (generated from .claude-plugin/marketplace.json: run `python3 site/build.py --sync`, don't edit by hand) -->
 | Plugin | Description | Install |
 | --- | --- | --- |
-| [usage-guard](plugins/usage-guard) | Usage-limit awareness: conserve, checkpoint and hand off before claude.ai limits cut Claude off. Needs Python 3 on PATH. | `/plugin install usage-guard@mohammadmd-plugins` |
+| [usage-guard](plugins/usage-guard) | Usage-limit awareness: know your limits, then checkpoint and hand off before claude.ai limits cut Claude off. Needs Python 3 on PATH. | `/plugin install usage-guard@mohammadmd-plugins` |
 | [usage-bar](plugins/usage-bar) | A minimal bar above the prompt: context window used/total, 5-hour and weekly limits with reset countdowns. Every section is optional. Needs Claude Code 2.1.288 or later. | `/plugin install usage-bar@mohammadmd-plugins` |
 | [progress-bar](plugins/progress-bar) | A progress bar above the prompt: Claude fills it in through a tool, and any script or command reports its own through a unix socket, with a warning when a job stalls or dies. Needs Claude Code 2.1.291 or later. | `/plugin install progress-bar@mohammadmd-plugins` |
 <!-- plugins:end -->
